@@ -1,6 +1,7 @@
 package com.stephensantilli.totp;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
@@ -13,6 +14,7 @@ import com.stephensantilli.totp.ui.TOTPPane;
 import burp.api.montoya.BurpExtension;
 import burp.api.montoya.MontoyaApi;
 import burp.api.montoya.core.ByteArray;
+import burp.api.montoya.core.ToolType;
 import burp.api.montoya.extension.Extension;
 import burp.api.montoya.extension.ExtensionUnloadingHandler;
 import burp.api.montoya.http.handler.HttpHandler;
@@ -21,6 +23,9 @@ import burp.api.montoya.http.handler.HttpResponseReceived;
 import burp.api.montoya.http.handler.RequestToBeSentAction;
 import burp.api.montoya.http.handler.ResponseReceivedAction;
 import burp.api.montoya.http.message.requests.HttpRequest;
+import burp.api.montoya.http.sessions.ActionResult;
+import burp.api.montoya.http.sessions.SessionHandlingAction;
+import burp.api.montoya.http.sessions.SessionHandlingActionData;
 import burp.api.montoya.logging.Logging;
 import burp.api.montoya.persistence.PersistedList;
 import burp.api.montoya.persistence.PersistedObject;
@@ -31,13 +36,25 @@ import burp.api.montoya.ui.settings.SettingsPanelSetting;
 import burp.api.montoya.ui.settings.SettingsPanelWithData;
 import burp.api.montoya.utilities.ByteUtils;
 
-public class TOTP implements BurpExtension, ExtensionUnloadingHandler, CodeListener, HttpHandler {
+public class TOTP
+        implements BurpExtension, ExtensionUnloadingHandler, CodeListener, HttpHandler, SessionHandlingAction {
 
     public static final int DEFAULT_DIGITS = 6, DEFAULT_DURATION = 30;
 
     public static final String PERSISTENCE_SETTING = "Save TOTPs to project file",
             REGEX_SETTING = "Use regex when matching TOTPs",
-            DEBUG_SETTING = "Enable verbose logging";
+            DEBUG_SETTING = "Enable verbose logging",
+            METHOD_SETTING = "Replacement method (requires extension reload)",
+            METHOD_ALL_OPT = "Monitor all requests",
+            METHOD_SESSION_OPT = "Session handling rules only (Ignores tool options below)",
+            TARGET_TOOL_SETTING = "Replace in Target",
+            SCANNER_TOOL_SETTING = "Replace in Scanner",
+            REPEATER_TOOL_SETTING = "Replace in Repeater",
+            INTRUDER_TOOL_SETTING = "Replace in Intruder",
+            SEQUENCER_TOOL_SETTING = "Replace in Sequencer",
+            AI_TOOL_SETTING = "Replace in AI",
+            EXTENSION_TOOL_SETTING = "Replace in Extensions",
+            PROXY_TOOL_SETTING = "Replace in Proxy";
 
     public static MontoyaApi api;
 
@@ -78,6 +95,16 @@ public class TOTP implements BurpExtension, ExtensionUnloadingHandler, CodeListe
                 .withSettings(SettingsPanelSetting.booleanSetting(PERSISTENCE_SETTING, true))
                 .withSettings(SettingsPanelSetting.booleanSetting(REGEX_SETTING, false))
                 .withSettings(SettingsPanelSetting.booleanSetting(DEBUG_SETTING, false))
+                .withSettings(SettingsPanelSetting.listSetting(METHOD_SETTING,
+                        List.of(METHOD_ALL_OPT, METHOD_SESSION_OPT), METHOD_ALL_OPT))
+                .withSettings(SettingsPanelSetting.booleanSetting(TARGET_TOOL_SETTING, false))
+                .withSettings(SettingsPanelSetting.booleanSetting(SCANNER_TOOL_SETTING, true))
+                .withSettings(SettingsPanelSetting.booleanSetting(REPEATER_TOOL_SETTING, false))
+                .withSettings(SettingsPanelSetting.booleanSetting(INTRUDER_TOOL_SETTING, false))
+                .withSettings(SettingsPanelSetting.booleanSetting(SEQUENCER_TOOL_SETTING, false))
+                .withSettings(SettingsPanelSetting.booleanSetting(AI_TOOL_SETTING, false))
+                .withSettings(SettingsPanelSetting.booleanSetting(EXTENSION_TOOL_SETTING, false))
+                .withSettings(SettingsPanelSetting.booleanSetting(PROXY_TOOL_SETTING, false))
                 .build();
 
         ext.setName("TOTP");
@@ -85,7 +112,17 @@ public class TOTP implements BurpExtension, ExtensionUnloadingHandler, CodeListe
 
         ui.registerSettingsPanel(settings);
 
-        api.http().registerHttpHandler(this);
+        if (settings.getString(METHOD_SETTING).equals(METHOD_ALL_OPT)) {
+
+            api.http().registerHttpHandler(this);
+            logOutput("Registered HTTP handler...", true);
+
+        } else {
+
+            api.http().registerSessionHandlingAction(this);
+            logOutput("Registered session handler...", true);
+
+        }
 
         PersistedObject data = api.persistence().extensionData();
 
@@ -367,14 +404,84 @@ public class TOTP implements BurpExtension, ExtensionUnloadingHandler, CodeListe
 
     }
 
+    private List<ToolType> getScope() {
+
+        ArrayList<ToolType> tools = new ArrayList<>();
+
+        if (settings.getBoolean(TARGET_TOOL_SETTING))
+            tools.add(ToolType.TARGET);
+
+        if (settings.getBoolean(SCANNER_TOOL_SETTING)) {
+            tools.add(ToolType.SCANNER);
+            tools.add(ToolType.RECORDED_LOGIN_REPLAYER);
+        }
+
+        if (settings.getBoolean(REPEATER_TOOL_SETTING))
+            tools.add(ToolType.REPEATER);
+
+        if (settings.getBoolean(INTRUDER_TOOL_SETTING))
+            tools.add(ToolType.INTRUDER);
+
+        if (settings.getBoolean(SEQUENCER_TOOL_SETTING))
+            tools.add(ToolType.SEQUENCER);
+
+        if (settings.getBoolean(AI_TOOL_SETTING))
+            tools.add(ToolType.BURP_AI);
+
+        if (settings.getBoolean(EXTENSION_TOOL_SETTING))
+            tools.add(ToolType.EXTENSIONS);
+
+        if (settings.getBoolean(PROXY_TOOL_SETTING))
+            tools.add(ToolType.PROXY);
+
+        return tools;
+
+    }
+
+    @Override
+    public String name() {
+        return "Insert TOTP into request";
+    }
+
+    @Override
+    public ActionResult performAction(SessionHandlingActionData actionData) {
+
+        HttpRequest newReq = matchAndReplace(actionData.request());
+
+        if (newReq != null)
+            return ActionResult.actionResult(newReq);
+        else
+            return ActionResult.actionResult(actionData.request());
+
+    }
+
     @Override
     public RequestToBeSentAction handleHttpRequestToBeSent(HttpRequestToBeSent requestToBeSent) {
+
+        if (!getScope().contains(requestToBeSent.toolSource().toolType()))
+            return RequestToBeSentAction.continueWith(requestToBeSent);
+
+        HttpRequest newReq = matchAndReplace(requestToBeSent);
+
+        if (newReq != null)
+            return RequestToBeSentAction.continueWith(newReq);
+        else
+            return RequestToBeSentAction.continueWith(requestToBeSent);
+    }
+
+    @Override
+    public ResponseReceivedAction handleHttpResponseReceived(HttpResponseReceived responseReceived) {
+
+        return ResponseReceivedAction.continueWith(responseReceived);
+
+    }
+
+    private HttpRequest matchAndReplace(HttpRequest req) {
 
         ByteUtils byteUtils = api.utilities().byteUtils();
 
         boolean useRegex = TOTP.settings.getBoolean(TOTP.REGEX_SETTING);
 
-        HttpRequest req = requestToBeSent;
         String content = byteUtils.convertToString(req.toByteArray().getBytes());
 
         logOutput("Called to replace in request " + req.method() + " " + req.pathWithoutQuery() + "...", true);
@@ -388,8 +495,7 @@ public class TOTP implements BurpExtension, ExtensionUnloadingHandler, CodeListe
             if (!c.isEnabled())
                 continue;
 
-            logOutput("[" + c.getName() + "]: Searching for match to \"" + c.getMatch() + "\" with regex "
-                    + (useRegex ? "enabled" : "disabled") + "...", true);
+            logOutput("[" + c.getName() + "]: Searching for match to \"" + c.getMatch() + "\"...", true);
 
             String match = c.getMatch();
             String newContent = content;
@@ -401,8 +507,8 @@ public class TOTP implements BurpExtension, ExtensionUnloadingHandler, CodeListe
 
             if (!newContent.equals(content)) {
 
-                logOutput("[" + c.getName() + "]: Replacements made for \"" + c.getMatch() + "\" with regex "
-                        + (useRegex ? "enabled" : "disabled") + "...", true);
+                logOutput("[" + c.getName() + "]: Replaced content matching \"" + c.getMatch() + "\" for request "
+                        + req.method() + " " + req.pathWithoutQuery() + "...", false);
 
                 byte[] bytes = byteUtils.convertFromString(newContent);
 
@@ -417,17 +523,7 @@ public class TOTP implements BurpExtension, ExtensionUnloadingHandler, CodeListe
 
         }
 
-        if (newReq != null)
-            return RequestToBeSentAction.continueWith(newReq);
-        else
-            return RequestToBeSentAction.continueWith(requestToBeSent);
-
-    }
-
-    @Override
-    public ResponseReceivedAction handleHttpResponseReceived(HttpResponseReceived responseReceived) {
-
-        return ResponseReceivedAction.continueWith(responseReceived);
+        return newReq;
 
     }
 

@@ -102,7 +102,7 @@ public class Entry extends JPanel {
         secretFieldCons.weightx = .7;
         secretFieldCons.weighty = .5;
         secretFieldCons.gridheight = 1;
-        secretFieldCons.gridwidth = 4;
+        secretFieldCons.gridwidth = 3;
         secretFieldCons.insets = insets;
         secretFieldCons.fill = GridBagConstraints.BOTH;
         secretFieldCons.anchor = GridBagConstraints.CENTER;
@@ -245,7 +245,7 @@ public class Entry extends JPanel {
         algoBtns.add(sha512Rad);
 
         this.addBtn = new JButton("Add");
-        addBtn.setFont(font);
+        addBtn.setFont(font.deriveFont(Font.BOLD, font.getSize() * 2));
 
         addBtn.setBackground(new Color(255, 102, 51));
         addBtn.setForeground(Color.WHITE);
@@ -270,10 +270,10 @@ public class Entry extends JPanel {
 
         GridBagConstraints addBtnCons = new GridBagConstraints();
         addBtnCons.gridx = 8;
-        addBtnCons.gridy = 1;
+        addBtnCons.gridy = 0;
         addBtnCons.weightx = .5;
         addBtnCons.weighty = .5;
-        addBtnCons.gridheight = 1;
+        addBtnCons.gridheight = 2;
         addBtnCons.gridwidth = 1;
         addBtnCons.insets = insets;
         addBtnCons.fill = GridBagConstraints.BOTH;
