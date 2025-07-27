@@ -3,16 +3,45 @@ TOTP is an extension for Burp Suite that allows you to generate and use time-bas
 
 ![Screenshot of the extension's tab in Burp Suite.](/images/TOTP_Tab.png)
 
+## Table of Contents
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+  - [Adding a code](#adding-a-code)
+  - [Viewing your codes](#viewing-your-codes)
+  - [Use with Scanner](#use-with-scanner)
+- [Troubleshooting](#troubleshooting)
+  - [The placeholder wasn't replaced with a TOTP](#the-placeholder-wasnt-replaced-with-a-totp)
+  - [My placeholder gets replaced with the TOTP code in Repeater](#my-placeholder-gets-replaced-with-the-totp-code-in-repeater)
+- [Settings](#settings)
+  - [Save TOTPs to project file](#save-totps-to-project-file)
+  - [Use regex when matching TOTPs](#use-regex-when-matching-totps)
+  - [Enable verbose logging](#enable-verbose-logging)
+  - [Replacement method](#replacement-method)
+  - [Replace in X](#replace-in-target)
+- [Acknowledgements](#acknowledgements)
+
 ## Features
 - TOTP codes are refreshed automatically and displayed right in Burp Suite
 - Automatically insert TOTPs into requests sent from any Burp tool using a custom placeholder string or regex match
   - Use with Burp's Scanner to allow crawling websites with two-factor authentication
   - Use with Repeater to test authentication flows without constantly pasting TOTP codes
-- Enable and disable matching for each TOTP on the fly
+  - Enable and disable matching for each TOTP on the fly
 - Save TOTPs to your project file
 - Add TOTPs with custom durations, code lengths, and choose which hashing algorithm to use (SHA-1, SHA-256, or SHA-512)
 - Copy TOTPs to your clipboard with one click
 - Name each TOTP to distinguish them
+
+## Installation
+1. Download the source code
+2. Build the extension using `./gradlew build` (Mac & Linux) or `.\gradlew.bat build` (Windows)
+3. Launch Burp Suite and navigate to the "Extensions" tab
+4. Click "Add"
+5. Set "Extension type" to `Java`
+6. Select the Jar file you built in Step 2 (It will be in `./build/libs/TOTP.jar`)
+7. Click "Next" to load the extension
+
+For more information, see [PortSwigger's documentation](https://portswigger.net/burp/documentation/desktop/extend-burp/extensions/installing/manual-install).
 
 ## Usage
 
