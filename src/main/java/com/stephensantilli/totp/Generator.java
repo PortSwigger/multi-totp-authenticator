@@ -26,22 +26,18 @@ import java.math.BigInteger;
  */
 public class Generator {
 
-    private static final int[] DIGITS_POWER
-    // 0 1 2 3 4 5 6 7 8
-            = { 1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000 };
-
     /**
      * This method uses the JCE to provide the crypto algorithm.
      * HMAC computes a Hashed Message Authentication Code with the
      * crypto hash algorithm as a parameter.
      *
      * @param crypto
-     *            the crypto algorithm (HmacSHA1, HmacSHA256,
-     *            HmacSHA512)
+     *                 the crypto algorithm (HmacSHA1, HmacSHA256,
+     *                 HmacSHA512)
      * @param keyBytes
-     *            the bytes to use for the HMAC key
+     *                 the bytes to use for the HMAC key
      * @param text
-     *            the message or text to be authenticated
+     *                 the message or text to be authenticated
      */
     private static byte[] hmac_sha(String crypto, byte[] keyBytes,
             byte[] text) {
@@ -136,14 +132,14 @@ public class Generator {
      * Generates a TOTP.
      * 
      * @param base32Secret
-     *            The secret key, in Base32
+     *                     The secret key, in Base32
      * @param digits
-     *            The number of digits, typically 6 or 8.
+     *                     The number of digits, typically 6 or 8.
      * @param time
-     *            The time, in milliseconds, to calculate the TOTP for.
+     *                     The time, in milliseconds, to calculate the TOTP for.
      * @param crypto
-     *            The crypto algorithm to use (HmacSHA1, HmacSHA256,
-     *            HmacSHA512)
+     *                     The crypto algorithm to use (HmacSHA1, HmacSHA256,
+     *                     HmacSHA512)
      * @return A time-based one-time password according to RFC 6238 with the
      *         supplied parameters.
      */
@@ -173,7 +169,7 @@ public class Generator {
                 ((hash[offset + 2] & 0xff) << 8) |
                 (hash[offset + 3] & 0xff);
 
-        int otp = binary % DIGITS_POWER[digits];
+        int otp = binary % (int) Math.pow(10, digits);
 
         result = Integer.toString(otp);
 

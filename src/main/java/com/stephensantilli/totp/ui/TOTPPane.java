@@ -23,6 +23,8 @@ public class TOTPPane extends JSplitPane {
 
         JScrollPane scrollPane = new JScrollPane(codeTable);
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.getHorizontalScrollBar().setUnitIncrement(20);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(20);
 
         this.add(entryPane);
         this.add(scrollPane);

@@ -3,12 +3,22 @@ package com.stephensantilli.totp.ui;
 import static com.stephensantilli.totp.TOTP.DEFAULT_DIGITS;
 import static com.stephensantilli.totp.TOTP.DEFAULT_DURATION;
 import static com.stephensantilli.totp.TOTP.api;
+import static com.stephensantilli.totp.TOTP.logOutput;
 
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.Rectangle;
+import java.awt.Robot;
+import java.awt.Toolkit;
+import java.awt.image.BufferedImage;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import javax.swing.ButtonGroup;
 import javax.swing.ButtonModel;
 import javax.swing.JButton;
@@ -18,6 +28,13 @@ import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.BinaryBitmap;
+import com.google.zxing.DecodeHintType;
+import com.google.zxing.MultiFormatReader;
+import com.google.zxing.NotFoundException;
+import com.google.zxing.RGBLuminanceSource;
+import com.google.zxing.common.HybridBinarizer;
 import com.stephensantilli.totp.Code;
 import com.stephensantilli.totp.CodeListener;
 import com.stephensantilli.totp.TOTP;
@@ -32,7 +49,7 @@ public class Entry extends JPanel {
 
     private JRadioButton sha1Rad, sha256Rad, sha512Rad;
 
-    private JButton addBtn;
+    private JButton addBtn, scanBtn;
 
     public Entry(CodeListener listener) {
 
@@ -244,6 +261,51 @@ public class Entry extends JPanel {
         algoBtns.add(sha256Rad);
         algoBtns.add(sha512Rad);
 
+        this.scanBtn = new JButton("Scan QR");
+        scanBtn.setFont(font.deriveFont(Font.BOLD, font.getSize() * 2));
+
+        scanBtn.addActionListener(l -> {
+
+            try {
+
+                String scanResult = scanQR();
+                logOutput("Scanned QR code! Got: " + scanResult, false);
+
+                setEntryFromURI(scanResult);
+
+            } catch (NotFoundException e) {
+
+                JOptionPane.showMessageDialog(
+                        api.userInterface().swingUtils().suiteFrame(),
+                        "No QR code found.",
+                        "Error",
+                        JOptionPane.WARNING_MESSAGE);
+
+            } catch (Exception e) {
+
+                JOptionPane.showMessageDialog(
+                        api.userInterface().swingUtils().suiteFrame(),
+                        e.getMessage(),
+                        "Error",
+                        JOptionPane.WARNING_MESSAGE);
+
+            }
+
+        });
+
+        GridBagConstraints scanBtnCons = new GridBagConstraints();
+        scanBtnCons.gridx = 8;
+        scanBtnCons.gridy = 0;
+        scanBtnCons.weightx = .5;
+        scanBtnCons.weighty = .5;
+        scanBtnCons.gridheight = 1;
+        scanBtnCons.gridwidth = 1;
+        scanBtnCons.insets = insets;
+        scanBtnCons.fill = GridBagConstraints.BOTH;
+        scanBtnCons.anchor = GridBagConstraints.EAST;
+
+        this.add(scanBtn, scanBtnCons);
+
         this.addBtn = new JButton("Add");
         addBtn.setFont(font.deriveFont(Font.BOLD, font.getSize() * 2));
 
@@ -260,9 +322,9 @@ public class Entry extends JPanel {
 
                 JOptionPane.showMessageDialog(
                         api.userInterface().swingUtils().suiteFrame(),
-                        "Failed to add code: " + e.getMessage(),
+                        e.getMessage(),
                         "Error",
-                        JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.WARNING_MESSAGE);
 
             }
 
@@ -270,16 +332,101 @@ public class Entry extends JPanel {
 
         GridBagConstraints addBtnCons = new GridBagConstraints();
         addBtnCons.gridx = 8;
-        addBtnCons.gridy = 0;
+        addBtnCons.gridy = 1;
         addBtnCons.weightx = .5;
         addBtnCons.weighty = .5;
-        addBtnCons.gridheight = 2;
+        addBtnCons.gridheight = 1;
         addBtnCons.gridwidth = 1;
         addBtnCons.insets = insets;
         addBtnCons.fill = GridBagConstraints.BOTH;
         addBtnCons.anchor = GridBagConstraints.EAST;
 
         this.add(addBtn, addBtnCons);
+
+    }
+
+    private void setEntryFromURI(String uri) throws Exception {
+
+        Pattern pattern = Pattern.compile(
+                "otpauth://(?<type>totp|hotp)/(?<label>[^?]+)\\?(?<params>(&?issuer=(?<issuer>[^&]+))|(&?secret=(?<secret>[^&]+))|(&?digits=(?<digits>[^&]+))|(&?period=(?<period>[^&]+))|(&?algorithm=(?<algorithm>[^&]+)))+");
+
+        uri = api.utilities().urlUtils().decode(uri);
+
+        Matcher matcher = pattern.matcher(uri);
+
+        if (!matcher.matches())
+            throw new Exception("Malformed URI!");
+
+        String uriType = matcher.group("type"),
+                uriLabel = matcher.group("label"),
+                uriIssuer = matcher.group("issuer"),
+                uriSecret = matcher.group("secret"),
+                uriDigits = matcher.group("digits"),
+                uriPeriod = matcher.group("period"),
+                uriAlgorithm = matcher.group("algorithm");
+
+        if (uriType == null || !uriType.equals("totp"))
+            throw new Exception("Invalid URI type. Must be \"totp\".");
+
+        if (uriSecret == null || uriSecret.equals(""))
+            throw new Exception("Invalid URI secret.");
+
+        secretField.setText(uriSecret);
+
+        if (uriLabel != null)
+            nameField.setText(uriLabel);
+
+        if (uriIssuer != null)
+            nameField.setText(nameField.getText() + " - " + uriIssuer);
+
+        if (uriDigits != null && !uriDigits.equals(""))
+            digitsField.setText(uriDigits);
+
+        if (uriPeriod != null && !uriPeriod.equals(""))
+            durationField.setText(uriPeriod);
+
+        if (uriAlgorithm != null) {
+
+            switch (uriAlgorithm) {
+                case "SHA256":
+                    algoBtns.setSelected(sha256Rad.getModel(), true);
+                    break;
+                case "SHA512":
+                    algoBtns.setSelected(sha512Rad.getModel(), true);
+                    break;
+                default:
+                    algoBtns.setSelected(sha1Rad.getModel(), true);
+
+            }
+
+        }
+
+    }
+
+    private String scanQR() throws Exception, NotFoundException {
+
+        Robot robot = new Robot();
+        Rectangle screenRect = new Rectangle(Toolkit.getDefaultToolkit().getScreenSize());
+        BufferedImage screenshot = robot.createScreenCapture(screenRect);
+
+        int width = screenshot.getWidth(), height = screenshot.getHeight();
+
+        RGBLuminanceSource image = new RGBLuminanceSource(width,
+                height,
+                screenshot.getRGB(0,
+                        0,
+                        width,
+                        height,
+                        null,
+                        0,
+                        width));
+
+        HybridBinarizer binarizer = new HybridBinarizer(image);
+        BinaryBitmap bitmap = new BinaryBitmap(binarizer);
+
+        MultiFormatReader reader = new MultiFormatReader();
+
+        return reader.decode(bitmap, Map.of(DecodeHintType.POSSIBLE_FORMATS, List.of(BarcodeFormat.QR_CODE))).getText();
 
     }
 

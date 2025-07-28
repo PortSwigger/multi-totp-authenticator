@@ -8,6 +8,7 @@ TOTP is an extension for Burp Suite that allows you to generate and use time-bas
 - [Installation](#installation)
 - [Usage](#usage)
   - [Adding a code](#adding-a-code)
+  - [Scanning QR codes](#scanning-qr-codes)
   - [Viewing your codes](#viewing-your-codes)
   - [Use with Scanner](#use-with-scanner)
 - [Troubleshooting](#troubleshooting)
@@ -27,6 +28,7 @@ TOTP is an extension for Burp Suite that allows you to generate and use time-bas
   - Use with Burp's Scanner to allow crawling websites with two-factor authentication
   - Use with Repeater to test authentication flows without constantly pasting TOTP codes
   - Enable and disable matching for each TOTP on the fly
+- Add TOTPs from QR codes, no manual entry required
 - Save TOTPs to your project file
 - Add TOTPs with custom durations, code lengths, and choose which hashing algorithm to use (SHA-1, SHA-256, or SHA-512)
 - Copy TOTPs to your clipboard with one click
@@ -62,6 +64,9 @@ This is the number of digits of the TOTP code to generate. This will almost alwa
 
 #### Algorithm
 This allows you to select the hashing algorithm that the application expects. This will almost always be `SHA-1`, which uses the HMAC-SHA-1 hash function. Some applications may use `SHA-256` or `SHA-512` hashing instead.
+
+### Scanning QR Codes
+QR codes can be used to automatically populate the values detailed in [Adding a code](#adding-a-code). In order for QR codes to be scanned, you must have the code and Burp visible on the same screen. Depending on your operating system, you may also have to give Burp Suite access to take a screen capture. If a QR code is successfully scanned, the encoded values will be added to their respective fields. Adjust them or simply press "Add."
 
 ### Viewing your codes
 In the "TOTP" tab, you can see a list of all of the TOTPs you have added to this project.
@@ -179,3 +184,4 @@ Enabling this will allow the extension to monitor and replace requests made from
 
 ## Acknowledgements
 - TOTPs are generated using code from [RFC 6238 Appendix A](https://datatracker.ietf.org/doc/html/rfc6238#appendix-A) by Johan Rydell, published under the IETF Trust's Revised BSD License.
+- QR code scanning is done using the [ZXing](https://github.com/zxing/zxing) library, which is licensed under the [Apache License v2.0](http://www.apache.org/licenses/LICENSE-2.0.html).

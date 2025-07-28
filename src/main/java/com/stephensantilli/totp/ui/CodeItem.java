@@ -74,6 +74,7 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         nameLbl.setPreferredSize(new Dimension(250, Integer.MAX_VALUE));
         nameLbl.setMinimumSize(new Dimension(100, Integer.MAX_VALUE));
         nameLbl.setMaximumSize(nameLbl.getPreferredSize());
+        nameLbl.setToolTipText("Name: " + code.getName());
 
         this.algoLbl = new JLabel(getCryptoDisplay(code.getCrypto()));
         algoLbl.setFont(font);
@@ -82,14 +83,16 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         algoLbl.setPreferredSize(new Dimension(metrics.stringWidth("SHA-512") + inset * 2, Integer.MAX_VALUE));
         algoLbl.setMinimumSize(algoLbl.getPreferredSize());
         algoLbl.setMaximumSize(algoLbl.getPreferredSize());
+        algoLbl.setToolTipText("Hashing algorithm");
 
         this.codeLbl = new JLabel(getCodeDisplay(code.generateCode()));
         codeLbl.setFont(font);
         codeLbl.addMouseListener(this);
         codeLbl.setBorder(defaultInsets);
-        codeLbl.setPreferredSize(new Dimension(metrics.stringWidth("0000 0000") + inset * 2, Integer.MAX_VALUE));
+        codeLbl.setPreferredSize(new Dimension(metrics.stringWidth("000 000 000") + inset * 2, Integer.MAX_VALUE));
         codeLbl.setMinimumSize(codeLbl.getPreferredSize());
         codeLbl.setMaximumSize(codeLbl.getPreferredSize());
+        codeLbl.setToolTipText(code.generateCode());
 
         this.progressBar = new JProgressBar(0, code.getDuration());
         progressBar.addMouseListener(this);
@@ -112,7 +115,7 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         matchField.addKeyListener(this);
         matchField.setMargin(new Insets(5, 5, 5, 5));
         matchField.setPreferredSize(new Dimension(450, Integer.MAX_VALUE));
-        matchField.setMinimumSize(new Dimension(150, Integer.MAX_VALUE));
+        matchField.setMinimumSize(new Dimension(100, Integer.MAX_VALUE));
         matchField.setMaximumSize(matchField.getPreferredSize());
 
         matchField.setEnabled(code.isEnabled());
@@ -204,7 +207,12 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         this.add(Box.createRigidArea(new Dimension(10, 0)));
         this.add(removeBtn);
 
-        setPreferredSize(new Dimension(getWidth(), 130));
+        int prefWidth = 0;
+        for (Component comp : getComponents()) {
+            prefWidth += comp.getMinimumSize().getWidth();
+        }
+
+        setPreferredSize(new Dimension(prefWidth, 130));
         setMaximumSize(new Dimension(Integer.MAX_VALUE, getPreferredSize().height));
 
         setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -230,6 +238,8 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
         if (len % 2 == 0)
             return code.substring(0, len / 2) + " " + code.substring(len / 2, len);
+        else if (len == 9)
+            return code.substring(0, 3) + " " + code.substring(3, 6) + " " + code.substring(6, 9);
         else
             return code;
 
@@ -246,7 +256,9 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
     public void updateCode() {
 
-        codeLbl.setText(getCodeDisplay(code.generateCode()));
+        String value = code.generateCode();
+        codeLbl.setText(getCodeDisplay(value));
+        codeLbl.setToolTipText(value);
         updateProgressBar();
 
     }
