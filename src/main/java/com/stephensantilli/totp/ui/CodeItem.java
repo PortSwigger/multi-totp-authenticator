@@ -3,10 +3,9 @@ package com.stephensantilli.totp.ui;
 import static com.stephensantilli.totp.TOTP.api;
 
 import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.FontMetrics;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
@@ -15,9 +14,8 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+
 import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JLabel;
@@ -56,86 +54,134 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         this.code = code;
         this.listener = listener;
 
-        BoxLayout layout = new BoxLayout(this, BoxLayout.X_AXIS);
+        GridBagLayout layout = new GridBagLayout();
         setLayout(layout);
 
         Font font = api.userInterface().currentDisplayFont();
         font = font.deriveFont(font.getSize() * 1.5f);
 
-        FontMetrics metrics = getFontMetrics(font);
-
         int inset = 10;
-        Border defaultInsets = BorderFactory.createEmptyBorder(inset, inset, inset, inset);
+        Insets insets = new Insets(inset, inset, inset, inset);
 
         this.nameLbl = new JLabel(code.getName());
-        nameLbl.setFont(font);
+        nameLbl.setFont(font.deriveFont(Font.BOLD));
         nameLbl.addMouseListener(this);
-        nameLbl.setBorder(defaultInsets);
-        nameLbl.setPreferredSize(new Dimension(250, Integer.MAX_VALUE));
-        nameLbl.setMinimumSize(new Dimension(100, Integer.MAX_VALUE));
-        nameLbl.setMaximumSize(nameLbl.getPreferredSize());
         nameLbl.setToolTipText("Name: " + code.getName());
+
+        GridBagConstraints nameLblCons = new GridBagConstraints();
+        nameLblCons.gridx = 0;
+        nameLblCons.gridy = 0;
+        nameLblCons.weightx = .5;
+        nameLblCons.weighty = .5;
+        nameLblCons.gridheight = 1;
+        nameLblCons.gridwidth = 1;
+        nameLblCons.insets = insets;
+        nameLblCons.fill = GridBagConstraints.BOTH;
+        nameLblCons.anchor = GridBagConstraints.CENTER;
 
         this.algoLbl = new JLabel(getCryptoDisplay(code.getCrypto()));
         algoLbl.setFont(font);
         algoLbl.addMouseListener(this);
-        algoLbl.setBorder(defaultInsets);
-        algoLbl.setPreferredSize(new Dimension(metrics.stringWidth("SHA-512") + inset * 2, Integer.MAX_VALUE));
-        algoLbl.setMinimumSize(algoLbl.getPreferredSize());
-        algoLbl.setMaximumSize(algoLbl.getPreferredSize());
         algoLbl.setToolTipText("Hashing algorithm");
+        GridBagConstraints algoLblCons = new GridBagConstraints();
+        algoLblCons.gridx = 2;
+        algoLblCons.gridy = 0;
+        algoLblCons.weightx = .5;
+        algoLblCons.weighty = .5;
+        algoLblCons.gridheight = 1;
+        algoLblCons.gridwidth = 1;
+        algoLblCons.insets = insets;
+        algoLblCons.fill = GridBagConstraints.VERTICAL;
+        algoLblCons.anchor = GridBagConstraints.CENTER;
 
         this.codeLbl = new JLabel(getCodeDisplay(code.generateCode()));
-        codeLbl.setFont(font);
+        codeLbl.setFont(font.deriveFont(Font.BOLD));
         codeLbl.addMouseListener(this);
-        codeLbl.setBorder(defaultInsets);
-        codeLbl.setPreferredSize(new Dimension(metrics.stringWidth("000 000 000") + inset * 2, Integer.MAX_VALUE));
-        codeLbl.setMinimumSize(codeLbl.getPreferredSize());
-        codeLbl.setMaximumSize(codeLbl.getPreferredSize());
         codeLbl.setToolTipText(code.generateCode());
+        codeLbl.setHorizontalAlignment(JLabel.CENTER);
+
+        GridBagConstraints codeLblCons = new GridBagConstraints();
+        codeLblCons.gridx = 0;
+        codeLblCons.gridy = 1;
+        codeLblCons.weightx = .5;
+        codeLblCons.weighty = .5;
+        codeLblCons.gridheight = 1;
+        codeLblCons.gridwidth = 1;
+        codeLblCons.insets = insets;
+        codeLblCons.fill = GridBagConstraints.BOTH;
+        codeLblCons.anchor = GridBagConstraints.CENTER;
 
         this.progressBar = new JProgressBar(0, code.getDuration());
         progressBar.addMouseListener(this);
-        progressBar.setBorder(defaultInsets);
-        progressBar.setPreferredSize(new Dimension(350, 50));
-        progressBar.setMinimumSize(new Dimension(100, 50));
-        progressBar.setMaximumSize(progressBar.getPreferredSize());
+
+        GridBagConstraints progressBarCons = new GridBagConstraints();
+        progressBarCons.gridx = 0;
+        progressBarCons.gridy = 2;
+        progressBarCons.weightx = .5;
+        progressBarCons.weighty = .5;
+        progressBarCons.gridheight = 1;
+        progressBarCons.gridwidth = 1;
+        progressBarCons.insets = insets;
+        progressBarCons.fill = GridBagConstraints.BOTH;
+        progressBarCons.anchor = GridBagConstraints.CENTER;
 
         this.matchLbl = new JLabel("Match:");
-        matchLbl.setFont(font);
+        matchLbl.setFont(font.deriveFont(Font.BOLD));
         matchLbl.addMouseListener(this);
-        matchLbl.setBorder(defaultInsets);
-        matchLbl.setHorizontalTextPosition(JLabel.CENTER);
-
         matchLbl.setEnabled(code.isEnabled());
+
+        GridBagConstraints matchLblCons = new GridBagConstraints();
+        matchLblCons.gridx = 1;
+        matchLblCons.gridy = 0;
+        matchLblCons.weightx = .5;
+        matchLblCons.weighty = .5;
+        matchLblCons.gridheight = 1;
+        matchLblCons.gridwidth = 1;
+        matchLblCons.insets = insets;
+        matchLblCons.fill = GridBagConstraints.BOTH;
+        matchLblCons.anchor = GridBagConstraints.CENTER;
 
         this.matchField = new JTextField(code.getMatch());
         matchField.setFont(font);
         matchField.addMouseListener(this);
         matchField.addKeyListener(this);
-        matchField.setMargin(new Insets(5, 5, 5, 5));
-        matchField.setPreferredSize(new Dimension(450, Integer.MAX_VALUE));
-        matchField.setMinimumSize(new Dimension(100, Integer.MAX_VALUE));
-        matchField.setMaximumSize(matchField.getPreferredSize());
-
+        matchField.setColumns(10);
         matchField.setEnabled(code.isEnabled());
+
+        GridBagConstraints matchFieldCons = new GridBagConstraints();
+        matchFieldCons.gridx = 1;
+        matchFieldCons.gridy = 1;
+        matchFieldCons.weightx = .0;
+        matchFieldCons.weighty = .5;
+        matchFieldCons.gridheight = 1;
+        matchFieldCons.gridwidth = 1;
+        matchFieldCons.insets = insets;
+        matchFieldCons.fill = GridBagConstraints.BOTH;
+        matchFieldCons.anchor = GridBagConstraints.CENTER;
 
         boolean darkMode = api.userInterface().currentTheme() == Theme.DARK;
         Color normal = darkMode ? new Color(0, 0, 0, 0) : Color.LIGHT_GRAY;
-
         Border matchFieldLineBorder = BorderFactory.createLineBorder(normal, 1);
         Border matchFieldMarginBorder = BorderFactory.createEmptyBorder(5, 5, 5, 5);
-
         matchField.setBorder(new CompoundBorder(matchFieldLineBorder, matchFieldMarginBorder));
 
         this.enabledBox = new JCheckBox();
         enabledBox.setFont(font);
         enabledBox.addMouseListener(this);
-        enabledBox.setBorder(defaultInsets);
         enabledBox.setToolTipText("Enable replacing");
         enabledBox.setText("Replace in requests?");
-
         enabledBox.setSelected(code.isEnabled());
+
+        GridBagConstraints enabledBoxCons = new GridBagConstraints();
+        enabledBoxCons.gridx = 1;
+        enabledBoxCons.gridy = 2;
+        enabledBoxCons.weightx = .5;
+        enabledBoxCons.weighty = .5;
+        enabledBoxCons.gridheight = 1;
+        enabledBoxCons.gridwidth = 1;
+        enabledBoxCons.insets = insets;
+        enabledBoxCons.fill = GridBagConstraints.BOTH;
+        enabledBoxCons.anchor = GridBagConstraints.CENTER;
 
         enabledBox.addActionListener(l -> {
 
@@ -147,24 +193,23 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
         });
 
-        this.removeBtn = new JButton("✕");
-        removeBtn.setFont(font);
-        removeBtn.addMouseListener(this);
-        removeBtn.setBorder(new CompoundBorder(removeBtn.getBorder(), defaultInsets));
-
-        removeBtn.addActionListener(l -> {
-
-            listener.removeCode(this);
-
-        });
-
         this.copyBtn = new JButton("Copy");
         copyBtn.setFont(font);
         copyBtn.addMouseListener(this);
-        copyBtn.setBorder(new CompoundBorder(copyBtn.getBorder(), defaultInsets));
-        copyBtn.setPreferredSize(new Dimension(metrics.stringWidth("Copy") + 75, Integer.MAX_VALUE));
-        copyBtn.setMinimumSize(copyBtn.getPreferredSize());
         copyBtn.setToolTipText("Copy TOTP to clipboard");
+
+        GridBagConstraints copyBtnCons = new GridBagConstraints();
+        copyBtnCons.gridx = 2;
+        copyBtnCons.gridy = 1;
+        copyBtnCons.weightx = .5;
+        copyBtnCons.weighty = .5;
+        copyBtnCons.gridheight = 1;
+        copyBtnCons.gridwidth = 1;
+        copyBtnCons.ipadx = 10;
+        copyBtnCons.ipady = 10;
+        copyBtnCons.insets = insets;
+        copyBtnCons.fill = GridBagConstraints.BOTH;
+        copyBtnCons.anchor = GridBagConstraints.CENTER;
 
         Timer delay = new Timer(200, m -> {
 
@@ -185,37 +230,41 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
         });
 
+        this.removeBtn = new JButton("✕");
+        removeBtn.setFont(font);
+        removeBtn.addMouseListener(this);
+
+        GridBagConstraints removeBtnCons = new GridBagConstraints();
+        removeBtnCons.gridx = 2;
+        removeBtnCons.gridy = 2;
+        removeBtnCons.weightx = .5;
+        removeBtnCons.weighty = .5;
+        removeBtnCons.gridheight = 1;
+        removeBtnCons.gridwidth = 1;
+        removeBtnCons.insets = insets;
+        removeBtnCons.ipadx = 10;
+        removeBtnCons.ipady = 10;
+        removeBtnCons.fill = GridBagConstraints.BOTH;
+        removeBtnCons.anchor = GridBagConstraints.CENTER;
+
+        removeBtn.addActionListener(l -> {
+
+            listener.removeCode(this);
+
+        });
+
         addMouseListener(this);
         setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
 
-        this.add(nameLbl);
-        this.add(Box.createHorizontalGlue());
-        this.add(algoLbl);
-        this.add(Box.createHorizontalGlue());
-        this.add(codeLbl);
-        this.add(Box.createHorizontalGlue());
-        this.add(progressBar);
-        this.add(Box.createHorizontalGlue());
-        this.add(matchLbl);
-        this.add(Box.createHorizontalGlue());
-        this.add(matchField);
-        this.add(Box.createHorizontalGlue());
-        this.add(enabledBox);
-        this.add(Box.createHorizontalGlue());
-        this.add(copyBtn);
-        this.add(Box.createHorizontalGlue());
-        this.add(Box.createRigidArea(new Dimension(10, 0)));
-        this.add(removeBtn);
-
-        int prefWidth = 0;
-        for (Component comp : getComponents()) {
-            prefWidth += comp.getMinimumSize().getWidth();
-        }
-
-        setPreferredSize(new Dimension(prefWidth, 130));
-        setMaximumSize(new Dimension(Integer.MAX_VALUE, getPreferredSize().height));
-
-        setAlignmentX(Component.LEFT_ALIGNMENT);
+        this.add(nameLbl, nameLblCons);
+        this.add(algoLbl, algoLblCons);
+        this.add(codeLbl, codeLblCons);
+        this.add(progressBar, progressBarCons);
+        this.add(matchLbl, matchLblCons);
+        this.add(matchField, matchFieldCons);
+        this.add(enabledBox, enabledBoxCons);
+        this.add(copyBtn, copyBtnCons);
+        this.add(removeBtn, removeBtnCons);
 
     }
 
