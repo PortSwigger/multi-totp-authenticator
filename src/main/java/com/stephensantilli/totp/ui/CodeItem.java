@@ -27,7 +27,6 @@ import javax.swing.Timer;
 import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
-
 import com.stephensantilli.totp.Code;
 import com.stephensantilli.totp.CodeListener;
 
@@ -80,22 +79,25 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         nameLblCons.anchor = GridBagConstraints.CENTER;
 
         this.algoLbl = new JLabel(getCryptoDisplay(code.getCrypto()));
-        algoLbl.setFont(font);
+        algoLbl.setFont(font.deriveFont(Font.BOLD));
+        algoLbl.setForeground(new Color(100, 100, 100));
         algoLbl.addMouseListener(this);
         algoLbl.setToolTipText("Hashing algorithm");
+        algoLbl.setHorizontalAlignment(JLabel.RIGHT);
+
         GridBagConstraints algoLblCons = new GridBagConstraints();
         algoLblCons.gridx = 2;
         algoLblCons.gridy = 0;
-        algoLblCons.weightx = .5;
+        algoLblCons.weightx = .25;
         algoLblCons.weighty = .5;
         algoLblCons.gridheight = 1;
         algoLblCons.gridwidth = 1;
-        algoLblCons.insets = insets;
-        algoLblCons.fill = GridBagConstraints.VERTICAL;
-        algoLblCons.anchor = GridBagConstraints.CENTER;
+        algoLblCons.insets = new Insets(inset, inset, inset, inset * 2);
+        algoLblCons.fill = GridBagConstraints.BOTH;
+        algoLblCons.anchor = GridBagConstraints.EAST;
 
         this.codeLbl = new JLabel(getCodeDisplay(code.generateCode()));
-        codeLbl.setFont(font.deriveFont(Font.BOLD));
+        codeLbl.setFont(font.deriveFont(Font.BOLD, font.getSize() * 2f));
         codeLbl.addMouseListener(this);
         codeLbl.setToolTipText(code.generateCode());
         codeLbl.setHorizontalAlignment(JLabel.CENTER);
@@ -193,7 +195,7 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
         });
 
-        this.copyBtn = new JButton("Copy");
+        this.copyBtn = new JButton("Copy Code");
         copyBtn.setFont(font);
         copyBtn.addMouseListener(this);
         copyBtn.setToolTipText("Copy TOTP to clipboard");
@@ -201,11 +203,11 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         GridBagConstraints copyBtnCons = new GridBagConstraints();
         copyBtnCons.gridx = 2;
         copyBtnCons.gridy = 1;
-        copyBtnCons.weightx = .5;
+        copyBtnCons.weightx = .25;
         copyBtnCons.weighty = .5;
         copyBtnCons.gridheight = 1;
         copyBtnCons.gridwidth = 1;
-        copyBtnCons.ipadx = 10;
+        copyBtnCons.ipadx = 0;
         copyBtnCons.ipady = 10;
         copyBtnCons.insets = insets;
         copyBtnCons.fill = GridBagConstraints.BOTH;
@@ -213,7 +215,7 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
         Timer delay = new Timer(200, m -> {
 
-            copyBtn.setText("Copy");
+            copyBtn.setText("Copy Code");
 
         });
 
@@ -237,13 +239,13 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         GridBagConstraints removeBtnCons = new GridBagConstraints();
         removeBtnCons.gridx = 2;
         removeBtnCons.gridy = 2;
-        removeBtnCons.weightx = .5;
+        removeBtnCons.weightx = .25;
         removeBtnCons.weighty = .5;
         removeBtnCons.gridheight = 1;
         removeBtnCons.gridwidth = 1;
         removeBtnCons.insets = insets;
-        removeBtnCons.ipadx = 10;
-        removeBtnCons.ipady = 10;
+        removeBtnCons.ipadx = 0;
+        removeBtnCons.ipady = 0;
         removeBtnCons.fill = GridBagConstraints.BOTH;
         removeBtnCons.anchor = GridBagConstraints.CENTER;
 
