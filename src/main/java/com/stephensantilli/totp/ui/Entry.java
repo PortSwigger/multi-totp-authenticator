@@ -262,7 +262,7 @@ public class Entry extends JPanel {
         algoBtns.add(sha512Rad);
 
         this.scanBtn = new JButton("Scan QR");
-        scanBtn.setFont(font.deriveFont(Font.BOLD, font.getSize() * 2));
+        scanBtn.setFont(font.deriveFont(Font.BOLD, font.getSize() * 1.5f));
 
         scanBtn.addActionListener(l -> {
 
@@ -307,7 +307,7 @@ public class Entry extends JPanel {
         this.add(scanBtn, scanBtnCons);
 
         this.addBtn = new JButton("Add");
-        addBtn.setFont(font.deriveFont(Font.BOLD, font.getSize() * 2));
+        addBtn.setFont(font.deriveFont(Font.BOLD, font.getSize() * 1.5f));
 
         addBtn.setBackground(new Color(255, 102, 51));
         addBtn.setForeground(Color.WHITE);

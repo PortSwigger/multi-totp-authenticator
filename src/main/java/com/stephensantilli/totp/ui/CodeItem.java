@@ -60,7 +60,7 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         setLayout(layout);
 
         Font font = api.userInterface().currentDisplayFont();
-        font = font.deriveFont(font.getSize() * 2f);
+        font = font.deriveFont(font.getSize() * 1.5f);
 
         FontMetrics metrics = getFontMetrics(font);
 
