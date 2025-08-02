@@ -1,7 +1,7 @@
 # TOTP
 TOTP is an extension for Burp Suite that allows you to generate and use time-based one-time passwords. TOTP codes are generated according to the standard outlined in [RFC 6238](https://datatracker.ietf.org/doc/html/rfc6238). The extension supports both Burp Suite's Professional and Community editions.
 
-![Screenshot of the extension's tab in Burp Suite.](/images/TOTP_Tab.png)
+![Screenshot of the extension's tab in Burp Suite.](/images/TOTP%20Tab.png)
 
 ## Table of Contents
 - [Features](#features)
