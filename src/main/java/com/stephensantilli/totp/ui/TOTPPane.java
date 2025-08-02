@@ -34,6 +34,7 @@ public class TOTPPane extends JSplitPane {
     public Entry getEntryPane() {
 
         return entryPane;
+        
     }
 
     public CodeTable getCodeTable() {

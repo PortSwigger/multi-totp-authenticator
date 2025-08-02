@@ -54,14 +54,13 @@ public class CodeTable extends JPanel {
 
     }
 
-    public void checkMatch() {
+    public void highlightMatches() {
 
-        // TODO: Can be a bit more efficient if we just loop once for matches before
-        // adding/changing, no need for sort.
         ArrayList<CodeItem> items = new ArrayList<>(codeItems);
         items.sort((a, b) -> a.getCode().getMatch().compareTo(b.getCode().getMatch()));
 
-        items.get(0).setRegexValid(true);
+        if (items.size() > 0)
+            items.get(0).setRegexValid(true);
 
         for (int i = 0; i < items.size() - 1; i++) {
 

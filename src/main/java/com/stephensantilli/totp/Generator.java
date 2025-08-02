@@ -26,101 +26,6 @@ import java.math.BigInteger;
  */
 public class Generator {
 
-    /**
-     * This method uses the JCE to provide the crypto algorithm.
-     * HMAC computes a Hashed Message Authentication Code with the
-     * crypto hash algorithm as a parameter.
-     *
-     * @param crypto
-     *                 the crypto algorithm (HmacSHA1, HmacSHA256,
-     *                 HmacSHA512)
-     * @param keyBytes
-     *                 the bytes to use for the HMAC key
-     * @param text
-     *                 the message or text to be authenticated
-     */
-    private static byte[] hmac_sha(String crypto, byte[] keyBytes,
-            byte[] text) {
-
-        try {
-
-            Mac hmac;
-            hmac = Mac.getInstance(crypto);
-
-            SecretKeySpec macKey = new SecretKeySpec(keyBytes, "RAW");
-
-            hmac.init(macKey);
-
-            return hmac.doFinal(text);
-
-        } catch (GeneralSecurityException gse) {
-
-            throw new UndeclaredThrowableException(gse);
-
-        }
-
-    }
-
-    /**
-     * This method converts a HEX string to Byte[]
-     *
-     * @param hex
-     *            the HEX string
-     * @return a byte array
-     */
-    private static byte[] hexStr2Bytes(String hex) {
-
-        // Adding one byte to get the right conversion
-        // Values starting with "0" can be converted
-        byte[] bArray = new BigInteger("10" + hex, 16).toByteArray();
-
-        // Copy all the REAL bytes, not the "first"
-        byte[] ret = new byte[bArray.length - 1];
-
-        for (int i = 0; i < ret.length; i++)
-            ret[i] = bArray[i + 1];
-
-        return ret;
-    }
-
-    /**
-     * This method converts a Base32 string to a Base16 (Hexadecimal) string
-     *
-     * @param hex
-     *            the Base32 string
-     * @return a byte array
-     */
-    private static String base32Str2HexStr(String base32) {
-
-        String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-        base32 = base32.toUpperCase().replaceAll("[= ]", "");
-
-        int buffer = 0, bitsLeft = 0;
-        StringBuilder hex = new StringBuilder();
-
-        for (char c : base32.toCharArray()) {
-
-            int val = alphabet.indexOf(c);
-            if (val < 0)
-                throw new IllegalArgumentException("Invalid Base32 char: " + c);
-
-            buffer = (buffer << 5) | val;
-            bitsLeft += 5;
-
-            while (bitsLeft >= 8) {
-
-                bitsLeft -= 8;
-                int b = (buffer >> bitsLeft) & 0xFF;
-                hex.append(String.format("%02x", b));
-
-            }
-
-        }
-
-        return hex.toString();
-
-    }
-
     public static String generateTOTP(String base32Secret, int digits, int duration, String crypto) {
 
         return generateTOTP(base32Secret, digits, Long.toHexString(System.currentTimeMillis() / 1000 / duration),
@@ -180,6 +85,102 @@ public class Generator {
         }
 
         return result;
+
+    }
+
+    /**
+     * This method uses the JCE to provide the crypto algorithm.
+     * HMAC computes a Hashed Message Authentication Code with the
+     * crypto hash algorithm as a parameter.
+     *
+     * @param crypto
+     *                 the crypto algorithm (HmacSHA1, HmacSHA256,
+     *                 HmacSHA512)
+     * @param keyBytes
+     *                 the bytes to use for the HMAC key
+     * @param text
+     *                 the message or text to be authenticated
+     */
+    private static byte[] hmac_sha(String crypto, byte[] keyBytes,
+            byte[] text) {
+
+        try {
+
+            Mac hmac;
+            hmac = Mac.getInstance(crypto);
+
+            SecretKeySpec macKey = new SecretKeySpec(keyBytes, "RAW");
+
+            hmac.init(macKey);
+
+            return hmac.doFinal(text);
+
+        } catch (GeneralSecurityException gse) {
+
+            throw new UndeclaredThrowableException(gse);
+
+        }
+
+    }
+
+    /**
+     * This method converts a HEX string to Byte[]
+     *
+     * @param hex
+     *            the HEX string
+     * @return a byte array
+     */
+    private static byte[] hexStr2Bytes(String hex) {
+
+        // Adding one byte to get the right conversion
+        // Values starting with "0" can be converted
+        byte[] bArray = new BigInteger("10" + hex, 16).toByteArray();
+
+        // Copy all the REAL bytes, not the "first"
+        byte[] ret = new byte[bArray.length - 1];
+
+        for (int i = 0; i < ret.length; i++)
+            ret[i] = bArray[i + 1];
+
+        return ret;
+
+    }
+
+    /**
+     * This method converts a Base32 string to a Base16 (Hexadecimal) string
+     *
+     * @param hex
+     *            the Base32 string
+     * @return a byte array
+     */
+    private static String base32Str2HexStr(String base32) {
+
+        String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+        base32 = base32.toUpperCase().replaceAll("[= ]", "");
+
+        int buffer = 0, bitsLeft = 0;
+        StringBuilder hex = new StringBuilder();
+
+        for (char c : base32.toCharArray()) {
+
+            int val = alphabet.indexOf(c);
+            if (val < 0)
+                throw new IllegalArgumentException("Invalid Base32 char: " + c);
+
+            buffer = (buffer << 5) | val;
+            bitsLeft += 5;
+
+            while (bitsLeft >= 8) {
+
+                bitsLeft -= 8;
+                int b = (buffer >> bitsLeft) & 0xFF;
+                hex.append(String.format("%02x", b));
+
+            }
+
+        }
+
+        return hex.toString();
 
     }
 

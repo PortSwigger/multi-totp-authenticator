@@ -3,6 +3,7 @@ package com.stephensantilli.totp.ui;
 import static com.stephensantilli.totp.TOTP.api;
 
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -48,19 +49,165 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
     private JCheckBox enabledBox;
 
+    private Insets insets;
+
+    private Font font;
+
     public CodeItem(Code code, CodeListener listener) {
 
         this.code = code;
         this.listener = listener;
 
-        GridBagLayout layout = new GridBagLayout();
-        setLayout(layout);
+        setLayout(new GridBagLayout());
 
-        Font font = api.userInterface().currentDisplayFont();
+        this.font = api.userInterface().currentDisplayFont();
         font = font.deriveFont(font.getSize() * 1.5f);
 
         int inset = 10;
-        Insets insets = new Insets(inset, inset, inset, inset);
+        this.insets = new Insets(inset, inset, inset, inset);
+
+        createMatchComponents();
+        createCodeDisplay();
+        createButtons();
+
+        addMouseListener(this);
+
+        setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
+        setMaximumSize(new Dimension(Integer.MAX_VALUE, 250));
+
+    }
+
+    public String formatCrypto(String crypto) {
+
+        if (crypto.equals("HmacSHA256"))
+            return "SHA-256";
+        else if (crypto.equals("HmacSHA512"))
+            return "SHA-512";
+        else if (crypto.equals("HmacSHA1"))
+            return "SHA-1";
+        else
+            return crypto;
+
+    }
+
+    public String formatCode(String code) {
+
+        int len = code.length();
+
+        if (len % 2 == 0)
+            return code.substring(0, len / 2) + " " + code.substring(len / 2, len);
+        else if (len == 9)
+            return code.substring(0, 3) + " " + code.substring(3, 6) + " " + code.substring(6, 9);
+        else
+            return code;
+
+    }
+
+    public void updateCode() {
+
+        String value = code.generateCode();
+
+        codeLbl.setText(formatCode(value));
+        codeLbl.setToolTipText(value);
+
+        updateProgressBar();
+
+    }
+
+    public void setRegexValid(boolean b) {
+
+        boolean darkMode = api.userInterface().currentTheme() == Theme.DARK;
+        Color normal = darkMode ? new Color(0, 0, 0, 0) : Color.LIGHT_GRAY;
+
+        Border lineBorder = BorderFactory.createLineBorder(b ? normal : Color.RED, 1);
+        Border margin = new EmptyBorder(5, 5, 5, 5);
+
+        matchField.setBorder(new CompoundBorder(lineBorder, margin));
+
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) {
+
+        SwingUtilities.invokeLater(() -> {
+
+            listener.matchUpdate(code, matchField.getText());
+
+        });
+
+    }
+
+    @Override
+    public void mouseEntered(MouseEvent e) {
+
+        boolean darkMode = api.userInterface().currentTheme() == Theme.DARK;
+        setBackground(darkMode ? Color.DARK_GRAY : new Color(240, 240, 240, 250));
+
+    }
+
+    @Override
+    public void mouseExited(MouseEvent e) {
+
+        setBackground(null);
+
+    }
+
+    public Code getCode() {
+
+        return code;
+    }
+
+    public JLabel getNameLbl() {
+
+        return nameLbl;
+    }
+
+    public JLabel getAlgoLbl() {
+
+        return algoLbl;
+    }
+
+    public JLabel getCodeLbl() {
+
+        return codeLbl;
+    }
+
+    public JButton getRemoveBtn() {
+
+        return removeBtn;
+    }
+
+    public CodeListener getListener() {
+
+        return listener;
+    }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+
+    }
+
+    @Override
+    public void mouseClicked(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+
+    }
+
+    private void createCodeDisplay() {
 
         this.nameLbl = new JLabel(code.getName());
         nameLbl.setFont(font.deriveFont(Font.BOLD));
@@ -78,12 +225,14 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         nameLblCons.fill = GridBagConstraints.BOTH;
         nameLblCons.anchor = GridBagConstraints.CENTER;
 
-        this.algoLbl = new JLabel(getCryptoDisplay(code.getCrypto()));
+        this.algoLbl = new JLabel(formatCrypto(code.getCrypto()));
         algoLbl.setFont(font.deriveFont(Font.BOLD));
         algoLbl.setForeground(new Color(100, 100, 100));
         algoLbl.addMouseListener(this);
         algoLbl.setToolTipText("Hashing algorithm");
         algoLbl.setHorizontalAlignment(JLabel.RIGHT);
+
+        int inset = insets.top;
 
         GridBagConstraints algoLblCons = new GridBagConstraints();
         algoLblCons.gridx = 2;
@@ -96,7 +245,7 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         algoLblCons.fill = GridBagConstraints.BOTH;
         algoLblCons.anchor = GridBagConstraints.EAST;
 
-        this.codeLbl = new JLabel(getCodeDisplay(code.generateCode()));
+        this.codeLbl = new JLabel(formatCode(code.generateCode()));
         codeLbl.setFont(font.deriveFont(Font.BOLD, font.getSize() * 2f));
         codeLbl.addMouseListener(this);
         codeLbl.setToolTipText(code.generateCode());
@@ -126,6 +275,20 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         progressBarCons.insets = insets;
         progressBarCons.fill = GridBagConstraints.BOTH;
         progressBarCons.anchor = GridBagConstraints.CENTER;
+
+        this.copyBtn = new JButton("Copy Code");
+        copyBtn.setFont(font);
+        copyBtn.addMouseListener(this);
+        copyBtn.setToolTipText("Copy TOTP to clipboard");
+
+        this.add(nameLbl, nameLblCons);
+        this.add(algoLbl, algoLblCons);
+        this.add(codeLbl, codeLblCons);
+        this.add(progressBar, progressBarCons);
+
+    }
+
+    private void createMatchComponents() {
 
         this.matchLbl = new JLabel("Match:");
         matchLbl.setFont(font.deriveFont(Font.BOLD));
@@ -195,10 +358,13 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
         });
 
-        this.copyBtn = new JButton("Copy Code");
-        copyBtn.setFont(font);
-        copyBtn.addMouseListener(this);
-        copyBtn.setToolTipText("Copy TOTP to clipboard");
+        this.add(matchLbl, matchLblCons);
+        this.add(matchField, matchFieldCons);
+        this.add(enabledBox, enabledBoxCons);
+
+    }
+
+    private void createButtons() {
 
         GridBagConstraints copyBtnCons = new GridBagConstraints();
         copyBtnCons.gridx = 2;
@@ -255,44 +421,8 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
         });
 
-        addMouseListener(this);
-        setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
-
-        this.add(nameLbl, nameLblCons);
-        this.add(algoLbl, algoLblCons);
-        this.add(codeLbl, codeLblCons);
-        this.add(progressBar, progressBarCons);
-        this.add(matchLbl, matchLblCons);
-        this.add(matchField, matchFieldCons);
-        this.add(enabledBox, enabledBoxCons);
         this.add(copyBtn, copyBtnCons);
         this.add(removeBtn, removeBtnCons);
-
-    }
-
-    public String getCryptoDisplay(String crypto) {
-
-        if (crypto.equals("HmacSHA256"))
-            return "SHA-256";
-        else if (crypto.equals("HmacSHA512"))
-            return "SHA-512";
-        else if (crypto.equals("HmacSHA1"))
-            return "SHA-1";
-        else
-            return crypto;
-
-    }
-
-    public String getCodeDisplay(String code) {
-
-        int len = code.length();
-
-        if (len % 2 == 0)
-            return code.substring(0, len / 2) + " " + code.substring(len / 2, len);
-        else if (len == 9)
-            return code.substring(0, 3) + " " + code.substring(3, 6) + " " + code.substring(6, 9);
-        else
-            return code;
 
     }
 
@@ -302,108 +432,6 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         int progress = duration - (((int) (System.currentTimeMillis() / 1000)) % duration);
 
         progressBar.setValue(progress);
-
-    }
-
-    public void updateCode() {
-
-        String value = code.generateCode();
-        codeLbl.setText(getCodeDisplay(value));
-        codeLbl.setToolTipText(value);
-        updateProgressBar();
-
-    }
-
-    public void setRegexValid(boolean b) {
-
-        boolean darkMode = api.userInterface().currentTheme() == Theme.DARK;
-        Color normal = darkMode ? new Color(0, 0, 0, 0) : Color.LIGHT_GRAY;
-
-        Border lineBorder = BorderFactory.createLineBorder(b ? normal : Color.RED, 1);
-        Border margin = new EmptyBorder(5, 5, 5, 5);
-
-        matchField.setBorder(new CompoundBorder(lineBorder, margin));
-
-    }
-
-    @Override
-    public void keyTyped(KeyEvent e) {
-
-        SwingUtilities.invokeLater(() -> {
-
-            listener.matchUpdate(code, matchField.getText());
-
-        });
-
-    }
-
-    @Override
-    public void mouseEntered(MouseEvent e) {
-
-        setBackground(
-                api.userInterface().currentTheme() == Theme.DARK ? Color.DARK_GRAY : new Color(240, 240, 240, 250));
-
-    }
-
-    @Override
-    public void mouseExited(MouseEvent e) {
-
-        setBackground(null);
-
-    }
-
-    public Code getCode() {
-
-        return code;
-    }
-
-    public JLabel getNameLbl() {
-
-        return nameLbl;
-    }
-
-    public JLabel getAlgoLbl() {
-
-        return algoLbl;
-    }
-
-    public JLabel getCodeLbl() {
-
-        return codeLbl;
-    }
-
-    public JButton getRemoveBtn() {
-
-        return removeBtn;
-    }
-
-    public CodeListener getListener() {
-
-        return listener;
-    }
-
-    @Override
-    public void keyPressed(KeyEvent e) {
-
-    }
-
-    @Override
-    public void keyReleased(KeyEvent e) {
-
-    }
-
-    @Override
-    public void mouseClicked(MouseEvent e) {
-
-    }
-
-    @Override
-    public void mousePressed(MouseEvent e) {
-
-    }
-
-    @Override
-    public void mouseReleased(MouseEvent e) {
 
     }
 

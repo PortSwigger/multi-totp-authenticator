@@ -9,6 +9,7 @@ TOTP is an extension for Burp Suite that allows you to generate and use time-bas
 - [Usage](#usage)
   - [Adding a code](#adding-a-code)
   - [Scanning QR codes](#scanning-qr-codes)
+  - [Setting your Scope](#setting-your-scope)
   - [Viewing your codes](#viewing-your-codes)
   - [Use with Scanner](#use-with-scanner)
 - [Troubleshooting](#troubleshooting)
@@ -18,13 +19,11 @@ TOTP is an extension for Burp Suite that allows you to generate and use time-bas
   - [Save TOTPs to project file](#save-totps-to-project-file)
   - [Use regex when matching TOTPs](#use-regex-when-matching-totps)
   - [Enable verbose logging](#enable-verbose-logging)
-  - [Replacement method](#replacement-method)
-  - [Replace in X](#replace-in-target)
 - [Acknowledgements](#acknowledgements)
 
 ## Features
 - TOTP codes are refreshed automatically and displayed right in Burp Suite
-- Automatically insert TOTPs into requests sent from any Burp tool using a custom placeholder string or regex match
+- Automatically insert TOTPs into requests sent from any Burp tool using a simple or regex match string
   - Use with Burp's Scanner to allow crawling websites with two-factor authentication
   - Use with Repeater to test authentication flows without constantly pasting TOTP codes
   - Enable and disable matching for each TOTP on the fly
@@ -66,7 +65,27 @@ This is the number of digits of the TOTP code to generate. This will almost alwa
 This allows you to select the hashing algorithm that the application expects. This will almost always be `SHA-1`, which uses the HMAC-SHA-1 hash function. Some applications may use `SHA-256` or `SHA-512` hashing instead.
 
 ### Scanning QR Codes
-QR codes can be used to automatically populate the values detailed in [Adding a code](#adding-a-code). In order for QR codes to be scanned, you must have the code and Burp visible on the same screen. Depending on your operating system, you may also have to give Burp Suite access to take a screen capture. If a QR code is successfully scanned, the encoded values will be added to their respective fields. Adjust them or simply press "Add."
+QR codes can be used to automatically populate the values detailed in [Adding a code](#adding-a-code). There are two ways to use QR codes.
+
+#### Scan QR
+This will scan a QR code that is on your screen. In order for QR codes to be scanned, you must have the code and Burp visible on the same monitor. Depending on your operating system, you may also have to give Burp Suite access to take a screen capture. If a QR code is successfully scanned, the encoded values will be added to their respective fields. Adjust them or simply press "Add."
+
+#### Paste QR
+This button will take an image from your clipboard and scan it for a QR code.
+
+### Setting your Scope
+The extension allows you to define a scope that limits which requests it will replace in. The scope that you configure in this dialog will not affect [session handling rules](#session-handling-rules).
+
+![The scope configuration dialog in the extension](/images/Scope%20Configuration.png)
+
+#### Tools scope
+The extension will only monitor requests from the tools you enable here.
+
+#### URL scope
+You may either choose to include all URLs, use the suite scope, or define a custom scope. The custom scope is configured by defining prefixes, such that the extension will filter all requests with URLs that start with your prefix.
+
+### Session handling rules
+You can also invoke the extension with a session handling rule if you prefer to control the scope that way. When configuring a rule, click "Add" > "Invoke a Burp extension" then select "Insert TOTP into request." See [Session handling rule editor](https://portswigger.net/burp/documentation/desktop/settings/sessions/session-handling-rules) to learn more.
 
 ### Viewing your codes
 In the "TOTP" tab, you can see a list of all of the TOTPs you have added to this project.
@@ -130,57 +149,6 @@ Enabling this option will treat your match strings as regular expressions accord
 
 ### Enable verbose logging
 This option enables additional logging for debugging purposes. This can affect performance, and should be left off when it is not in use.
-
-### Replacement method
-This extension has two replacement "modes." <ins>Switching replacement modes requires an extension reload.</ins>
-
-#### Mode: Monitor all requests
-This replacement mode will monitor all requests, inserting TOTPs where their match string is found. You can, and should, limit the scope of this using the "Replace in X" settings below.
-
-#### Mode: Session handling rules only
-This replacement mode will only match and replace requests which activate a session handling rule. This allows for greater control over the scope of requests the extension can act on. However, you must first create a session handling rule that invokes TOTP's extension handler, labeled, "Insert TOTP into request." For more information on configuring session handling rules, see [PortSwigger's documentation](https://portswigger.net/burp/documentation/desktop/settings/sessions/session-handling-rules).
-
-**Note:** Session handling rules have an important drawback. If the rule modifies a request sent in Repeater, the message editor in Repeater is updated to display the modified request. This means that, if you use a placeholder for TOTP matching (e.g. `_Name_`,) it will be replaced with the TOTP code upon sending the request. You can avoid this by using the ["Monitor all requests" mode](#mode-monitor-all-requests).
-
-### Replace in Target
-**Note:** The extension ignores this option when using ["Session handling rules only" mode](#mode-session-handling-rules-only).
-
-Enabling this will allow the extension to monitor and replace requests made from the Target tool.
-
-### Replace in Scanner
-**Note:** The extension ignores this option when using ["Session handling rules only" mode](#mode-session-handling-rules-only).
-
-Enabling this will allow the extension to monitor and replace requests made from the Scanner tool.
-
-### Replace in Repeater
-**Note:** The extension ignores this option when using ["Session handling rules only" mode](#mode-session-handling-rules-only).
-
-Enabling this will allow the extension to monitor and replace requests made from the Repeater tool.
-
-### Replace in Intruder
-**Note:** The extension ignores this option when using ["Session handling rules only" mode](#mode-session-handling-rules-only).
-
-Enabling this will allow the extension to monitor and replace requests made from the Intruder tool.
-
-### Replace in Sequencer
-**Note:** The extension ignores this option when using ["Session handling rules only" mode](#mode-session-handling-rules-only).
-
-Enabling this will allow the extension to monitor and replace requests made from the Sequencer tool.
-
-### Replace in AI
-**Note:** The extension ignores this option when using ["Session handling rules only" mode](#mode-session-handling-rules-only).
-
-Enabling this will allow the extension to monitor and replace requests made from the Burp AI tool.
-
-### Replace in Extensions
-**Note:** The extension ignores this option when using ["Session handling rules only" mode](#mode-session-handling-rules-only).
-
-Enabling this will allow the extension to monitor and replace requests made from Extensions.
-
-### Replace in Proxy
-**Note:** The extension ignores this option when using ["Session handling rules only" mode](#mode-session-handling-rules-only).
-
-Enabling this will allow the extension to monitor and replace requests made from the Proxy tool.
 
 ## Acknowledgements
 - TOTPs are generated using code from [RFC 6238 Appendix A](https://datatracker.ietf.org/doc/html/rfc6238#appendix-A) by Johan Rydell, published under the IETF Trust's Revised BSD License.

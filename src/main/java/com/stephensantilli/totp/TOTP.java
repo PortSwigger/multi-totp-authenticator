@@ -1,14 +1,15 @@
 package com.stephensantilli.totp;
 
 import java.util.ArrayList;
-import java.util.List;
-
+import javax.swing.JDialog;
+import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
 import com.stephensantilli.totp.ui.CodeItem;
 import com.stephensantilli.totp.ui.CodeTable;
 import com.stephensantilli.totp.ui.Entry;
+import com.stephensantilli.totp.ui.ScopeDialog;
 import com.stephensantilli.totp.ui.TOTPPane;
 
 import burp.api.montoya.BurpExtension;
@@ -41,30 +42,46 @@ public class TOTP
 
     public static final int DEFAULT_DIGITS = 6, DEFAULT_DURATION = 30;
 
+    public static final int ALL_URLS = 0, SUITE_SCOPE = 1, CUSTOM_SCOPE = 2;
+
     public static final String PERSISTENCE_SETTING = "Save TOTPs to project file",
             REGEX_SETTING = "Use regex when matching TOTPs",
             DEBUG_SETTING = "Enable verbose logging",
-            METHOD_SETTING = "Replacement method (requires extension reload)",
-            METHOD_ALL_OPT = "Monitor all requests",
-            METHOD_SESSION_OPT = "Session handling rules only (Ignores tool options below)",
-            TARGET_TOOL_SETTING = "Replace in Target",
-            SCANNER_TOOL_SETTING = "Replace in Scanner",
-            REPEATER_TOOL_SETTING = "Replace in Repeater",
-            INTRUDER_TOOL_SETTING = "Replace in Intruder",
-            SEQUENCER_TOOL_SETTING = "Replace in Sequencer",
-            AI_TOOL_SETTING = "Replace in AI",
-            EXTENSION_TOOL_SETTING = "Replace in Extensions",
-            PROXY_TOOL_SETTING = "Replace in Proxy";
+            SCOPE_OPTION_KEY = "_USE_SUITE_SCOPE",
+            PREFIXES_KEY = "_PREFIX_LIST",
+            TOOLS_KEY = "_TOOLS_LIST",
+            INCLUDE_SUBDOMAINS_SUFFIX = "_include_subdomains",
+            IS_ENABLED_SUFFIX = "_is_enabled";
 
     public static MontoyaApi api;
 
     public static SettingsPanelWithData settings;
+
+    public static void logOutput(String message, boolean debugOnly) {
+
+        if (settings.getBoolean(DEBUG_SETTING))
+            api.logging().logToOutput(message);
+
+    }
+
+    public static void logError(String message, boolean debugOnly) {
+
+        if (settings.getBoolean(DEBUG_SETTING))
+            api.logging().logToError(message);
+
+    }
 
     private ArrayList<Code> codes;
 
     private TOTPPane totpPane;
 
     private Timer timer;
+
+    private Scope scope;
+
+    private ScopeDialog scopeDialog;
+
+    private JDialog scopeDialogWrapper;
 
     public ArrayList<Code> getCodes() {
 
@@ -83,6 +100,8 @@ public class TOTP
 
         log.logToOutput("Initializing TOTP...");
 
+        ext.setName("TOTP");
+
         this.codes = new ArrayList<>();
         this.totpPane = new TOTPPane(this);
 
@@ -95,34 +114,19 @@ public class TOTP
                 .withSettings(SettingsPanelSetting.booleanSetting(PERSISTENCE_SETTING, true))
                 .withSettings(SettingsPanelSetting.booleanSetting(REGEX_SETTING, false))
                 .withSettings(SettingsPanelSetting.booleanSetting(DEBUG_SETTING, false))
-                .withSettings(SettingsPanelSetting.listSetting(METHOD_SETTING,
-                        List.of(METHOD_ALL_OPT, METHOD_SESSION_OPT), METHOD_ALL_OPT))
-                .withSettings(SettingsPanelSetting.booleanSetting(TARGET_TOOL_SETTING, false))
-                .withSettings(SettingsPanelSetting.booleanSetting(SCANNER_TOOL_SETTING, true))
-                .withSettings(SettingsPanelSetting.booleanSetting(REPEATER_TOOL_SETTING, false))
-                .withSettings(SettingsPanelSetting.booleanSetting(INTRUDER_TOOL_SETTING, false))
-                .withSettings(SettingsPanelSetting.booleanSetting(SEQUENCER_TOOL_SETTING, false))
-                .withSettings(SettingsPanelSetting.booleanSetting(AI_TOOL_SETTING, false))
-                .withSettings(SettingsPanelSetting.booleanSetting(EXTENSION_TOOL_SETTING, false))
-                .withSettings(SettingsPanelSetting.booleanSetting(PROXY_TOOL_SETTING, false))
                 .build();
 
-        ext.setName("TOTP");
-        ext.registerUnloadingHandler(this);
-
         ui.registerSettingsPanel(settings);
+        logOutput("Registered settings panel.", true);
 
-        if (settings.getString(METHOD_SETTING).equals(METHOD_ALL_OPT)) {
+        ext.registerUnloadingHandler(this);
+        logOutput("Registered unloading handler.", true);
 
-            api.http().registerHttpHandler(this);
-            logOutput("Registered HTTP handler...", true);
+        api.http().registerHttpHandler(this);
+        logOutput("Registered HTTP handler.", true);
 
-        } else {
-
-            api.http().registerSessionHandlingAction(this);
-            logOutput("Registered session handler...", true);
-
-        }
+        api.http().registerSessionHandlingAction(this);
+        logOutput("Registered session handling action.", true);
 
         PersistedObject data = api.persistence().extensionData();
 
@@ -140,6 +144,7 @@ public class TOTP
 
         timer.setRepeats(true);
 
+        loadScope();
         loadCodes();
 
         ui.registerSuiteTab("TOTP", totpPane);
@@ -148,60 +153,11 @@ public class TOTP
 
     }
 
-    public static void logOutput(String message, boolean debugOnly) {
-
-        if (settings.getBoolean(DEBUG_SETTING))
-            api.logging().logToOutput(message);
-
-    }
-
-    public static void logError(String message, boolean debugOnly) {
-
-        if (settings.getBoolean(DEBUG_SETTING))
-            api.logging().logToError(message);
-
-    }
-
     public void clearSaved() {
 
         PersistedObject data = api.persistence().extensionData();
 
         data.setStringList("names", PersistedList.persistedStringList());
-
-    }
-
-    public void loadCodes() {
-
-        if (!settings.getBoolean(PERSISTENCE_SETTING))
-            return;
-
-        logOutput("Loading saved codes...", true);
-
-        PersistedObject data = api.persistence().extensionData();
-
-        PersistedList<String> codeNames = data.getStringList("names");
-
-        for (String name : codeNames) {
-
-            logOutput("Loading code, \"" + name + "\"...", false);
-
-            try {
-
-                loadCode(name);
-
-            } catch (Exception e) {
-
-                TOTP.logError("e", false);
-
-            }
-
-        }
-
-        SwingUtilities.invokeLater(() -> {
-
-            totpPane.getCodeTable().checkMatch();
-
-        });
 
     }
 
@@ -310,6 +266,8 @@ public class TOTP
         if (save)
             saveCode(code);
 
+        logOutput("Added \"" + code.getName() + "\" to the project.", false);
+
     }
 
     @Override
@@ -329,18 +287,18 @@ public class TOTP
 
         String name = code.getName();
 
-        data.setString(name + "_secret", null);
-        data.setString(name + "_crypto", null);
-        data.setString(name + "_regex", null);
-        data.setInteger(name + "_digits", 0);
-        data.setInteger(name + "_duration", 0);
+        data.deleteString(name + "_secret");
+        data.deleteString(name + "_crypto");
+        data.deleteString(name + "_regex");
+        data.deleteInteger(name + "_digits");
+        data.deleteInteger(name + "_duration");
 
         PersistedList<String> names = data.getStringList("names");
         names.remove(name);
 
         data.setStringList("names", names);
 
-        logOutput("Removed \"" + name + "\" from project store.", false);
+        logOutput("Removed \"" + name + "\" from the project.", false);
 
     }
 
@@ -361,7 +319,7 @@ public class TOTP
 
         }
 
-        totpPane.getCodeTable().checkMatch();
+        totpPane.getCodeTable().highlightMatches();
 
         logOutput("Updated regex for \"" + name + "\".", true);
 
@@ -389,6 +347,9 @@ public class TOTP
 
         }
 
+        if (scopeDialogWrapper != null)
+            scopeDialogWrapper.dispose();
+
         logOutput("TOTP unloading finished. Goodbye!", false);
 
     }
@@ -401,40 +362,6 @@ public class TOTP
         PersistedObject data = api.persistence().extensionData();
 
         data.setBoolean(code.getName() + "_enabled", enabled);
-
-    }
-
-    private List<ToolType> getScope() {
-
-        ArrayList<ToolType> tools = new ArrayList<>();
-
-        if (settings.getBoolean(TARGET_TOOL_SETTING))
-            tools.add(ToolType.TARGET);
-
-        if (settings.getBoolean(SCANNER_TOOL_SETTING)) {
-            tools.add(ToolType.SCANNER);
-            tools.add(ToolType.RECORDED_LOGIN_REPLAYER);
-        }
-
-        if (settings.getBoolean(REPEATER_TOOL_SETTING))
-            tools.add(ToolType.REPEATER);
-
-        if (settings.getBoolean(INTRUDER_TOOL_SETTING))
-            tools.add(ToolType.INTRUDER);
-
-        if (settings.getBoolean(SEQUENCER_TOOL_SETTING))
-            tools.add(ToolType.SEQUENCER);
-
-        if (settings.getBoolean(AI_TOOL_SETTING))
-            tools.add(ToolType.BURP_AI);
-
-        if (settings.getBoolean(EXTENSION_TOOL_SETTING))
-            tools.add(ToolType.EXTENSIONS);
-
-        if (settings.getBoolean(PROXY_TOOL_SETTING))
-            tools.add(ToolType.PROXY);
-
-        return tools;
 
     }
 
@@ -458,7 +385,15 @@ public class TOTP
     @Override
     public RequestToBeSentAction handleHttpRequestToBeSent(HttpRequestToBeSent requestToBeSent) {
 
-        if (!getScope().contains(requestToBeSent.toolSource().toolType()))
+        ToolType tool = requestToBeSent.toolSource().toolType();
+
+        if (tool.equals(ToolType.RECORDED_LOGIN_REPLAYER))
+            tool = ToolType.SCANNER;
+
+        if (!scope.getTools().contains(tool))
+            return RequestToBeSentAction.continueWith(requestToBeSent);
+
+        if (!scope.requestInURLScope(requestToBeSent))
             return RequestToBeSentAction.continueWith(requestToBeSent);
 
         HttpRequest newReq = matchAndReplace(requestToBeSent);
@@ -467,6 +402,7 @@ public class TOTP
             return RequestToBeSentAction.continueWith(newReq);
         else
             return RequestToBeSentAction.continueWith(requestToBeSent);
+
     }
 
     @Override
@@ -476,15 +412,295 @@ public class TOTP
 
     }
 
+    @Override
+    public void addScope(ScopeItem item) throws Exception {
+
+        scope.addItem(item);
+
+        PersistedObject data = api.persistence().extensionData();
+
+        PersistedList<String> prefixes = data.getStringList(PREFIXES_KEY);
+        String prefix = item.getPrefix();
+
+        if (prefixes.contains(prefix))
+            throw new Exception("That URL is already in scope!");
+
+        prefixes.add(prefix);
+
+        data.setStringList(PREFIXES_KEY, prefixes);
+
+        data.setBoolean(prefix + INCLUDE_SUBDOMAINS_SUFFIX, item.getIncludeSubdomains());
+        data.setBoolean(prefix + IS_ENABLED_SUFFIX, item.isEnabled());
+
+        if (scopeDialog != null)
+            scopeDialog.addScope(item);
+
+        logOutput("Added \"" + prefix + "\" to the scope.", true);
+
+    }
+
+    @Override
+    public void removeScope(int index) throws Exception {
+
+        PersistedObject data = api.persistence().extensionData();
+
+        PersistedList<String> prefixes = data.getStringList(PREFIXES_KEY);
+        String prefix = prefixes.get(index);
+
+        prefixes.remove(prefix);
+
+        data.setStringList(PREFIXES_KEY, prefixes);
+
+        data.deleteBoolean(prefix + IS_ENABLED_SUFFIX);
+        data.deleteBoolean(prefix + INCLUDE_SUBDOMAINS_SUFFIX);
+
+        scope.removePrefix(index);
+
+        if (scopeDialog != null)
+            scopeDialog.removeScope(index);
+
+        logOutput("Removed \"" + prefix + "\" from the scope.", true);
+
+    }
+
+    @Override
+    public void setTool(ToolType tool, boolean enabled) {
+
+        PersistedObject data = api.persistence().extensionData();
+
+        PersistedList<String> tools = data.getStringList(TOOLS_KEY);
+
+        if (enabled) {
+
+            scope.addTool(tool);
+
+            if (!tools.contains(tool.toString()))
+                tools.add(tool.toString());
+
+        } else {
+
+            scope.removeTool(tool);
+
+            tools.remove(tool.toString());
+
+        }
+
+        logOutput((enabled ? "Enabled" : "Disabled") + " " + tool.toolName() + ".", true);
+
+    }
+
+    @Override
+    public void setScopeOption(ScopeOption scopeOption) {
+
+        PersistedObject data = api.persistence().extensionData();
+
+        scope.setSuiteScope(scopeOption);
+
+        data.setInteger(SCOPE_OPTION_KEY, scopeOption.getValue());
+
+        logOutput("Scope option set to " + scopeOption.name() + "!", true);
+
+    }
+
+    @Override
+    public void openScopeDialog() throws Exception {
+
+        logOutput("Opening scope dialog...", true);
+
+        this.scopeDialog = new ScopeDialog(this);
+        this.scopeDialogWrapper = new JDialog((JFrame) SwingUtilities.getWindowAncestor(totpPane.getEntryPane()),
+                "Scope Configuration",
+                false);
+
+        scopeDialogWrapper.setContentPane(scopeDialog);
+        scopeDialogWrapper.setLocationRelativeTo(totpPane.getEntryPane());
+
+        scopeDialog.setPrefixes(scope.getPrefixes(), scope.getScopeOption());
+        scopeDialog.setTools(scope.getTools());
+
+        scopeDialogWrapper.pack();
+        scopeDialogWrapper.setVisible(true);
+
+        logOutput("Scope dialog opened!", true);
+
+    }
+
+    @Override
+    public void closeScopeDialog() {
+
+        scopeDialogWrapper.dispose();
+        scopeDialog = null;
+
+        logOutput("Scope dialog closed!", true);
+
+    }
+
+    @Override
+    public void setItemPrefix(String prefix, int index) throws Exception {
+
+        ScopeItem item = scope.getPrefixes().get(index);
+
+        item.setPrefix(prefix);
+
+        logOutput("Prefix set to \"" + item.getPrefix() + "\"!", true);
+
+    }
+
+    @Override
+    public void setItemEnabled(boolean enabled, int index) throws Exception {
+
+        ScopeItem item = scope.getPrefixes().get(index);
+
+        item.setEnabled(enabled);
+
+        logOutput((enabled ? "Enabled" : "Disabled") + " \"" + item.getPrefix() + "\"!", true);
+
+    }
+
+    @Override
+    public void setItemIncludeSubdomains(boolean includeSubdomains, int index) throws Exception {
+
+        ScopeItem item = scope.getPrefixes().get(index);
+
+        item.setIncludeSubdomains(includeSubdomains);
+
+        logOutput((includeSubdomains ? "Enabled" : "Disabled") + " include subdomains for \"" + item.getPrefix() + "!",
+                true);
+
+    }
+
+    private void loadScope() {
+
+        if (!settings.getBoolean(PERSISTENCE_SETTING))
+            return;
+
+        this.scope = new Scope();
+
+        logOutput("Loading saved scope...", true);
+
+        PersistedObject data = api.persistence().extensionData();
+
+        try {
+
+            ScopeOption suiteScope = ScopeOption.valueOf(data.getInteger(SCOPE_OPTION_KEY));
+            scope.setSuiteScope(suiteScope);
+
+        } catch (Exception e) {
+
+            logError(e.getMessage(), false);
+            e.printStackTrace();
+
+        }
+
+        PersistedList<String> prefixes = data.getStringList(PREFIXES_KEY);
+
+        if (prefixes == null)
+            data.setStringList(PREFIXES_KEY, PersistedList.persistedStringList());
+        else {
+
+            for (String item : prefixes) {
+
+                logOutput("Loading prefix, \"" + item + "\"...", false);
+
+                try {
+
+                    boolean includeSubdomains = data.getBoolean(item + INCLUDE_SUBDOMAINS_SUFFIX);
+                    boolean enabled = data.getBoolean(item + IS_ENABLED_SUFFIX);
+
+                    scope.addItem(new ScopeItem(item, includeSubdomains, enabled));
+
+                    logOutput("Added prefix, \"" + item + "\".", false);
+
+                } catch (Exception e) {
+
+                    TOTP.logError(e.getMessage(), false);
+
+                }
+
+            }
+
+        }
+
+        PersistedList<String> tools = data.getStringList(TOOLS_KEY);
+
+        if (tools == null)
+            data.setStringList(TOOLS_KEY, PersistedList.persistedStringList());
+        else {
+
+            for (String item : tools) {
+
+                logOutput("Adding \"" + item + "\" to scope...", true);
+
+                try {
+
+                    ToolType tool = ToolType.valueOf(item);
+
+                    scope.getTools().add(tool);
+
+                    logOutput("Added \"" + tool + "\" to scope.", true);
+
+                } catch (Exception e) {
+
+                    TOTP.logError(e.getMessage(), false);
+
+                }
+
+            }
+
+        }
+
+        logOutput("Saved scope loaded!", true);
+
+    }
+
+    private void loadCodes() {
+
+        if (!settings.getBoolean(PERSISTENCE_SETTING))
+            return;
+
+        logOutput("Loading saved codes...", true);
+
+        PersistedObject data = api.persistence().extensionData();
+
+        PersistedList<String> codeNames = data.getStringList("names");
+
+        for (String name : codeNames) {
+
+            logOutput("Loading code, \"" + name + "\"...", false);
+
+            try {
+
+                loadCode(name);
+
+                logOutput("Added code, \"" + name + "\".", false);
+
+            } catch (Exception e) {
+
+                TOTP.logError(e.getMessage(), false);
+
+            }
+
+        }
+
+        SwingUtilities.invokeLater(() -> {
+
+            totpPane.getCodeTable().highlightMatches();
+
+        });
+
+        logOutput("Saved codes loaded!", true);
+
+    }
+
     private HttpRequest matchAndReplace(HttpRequest req) {
+
+        logOutput("Called to replace in request " + req.method() + " " + req.pathWithoutQuery() + "...", true);
 
         ByteUtils byteUtils = api.utilities().byteUtils();
 
         boolean useRegex = TOTP.settings.getBoolean(TOTP.REGEX_SETTING);
 
         String content = byteUtils.convertToString(req.toByteArray().getBytes());
-
-        logOutput("Called to replace in request " + req.method() + " " + req.pathWithoutQuery() + "...", true);
 
         HttpRequest newReq = null;
 
@@ -507,9 +723,6 @@ public class TOTP
 
             if (!newContent.equals(content)) {
 
-                logOutput("[" + c.getName() + "]: Replaced content matching \"" + c.getMatch() + "\" for request "
-                        + req.method() + " " + req.pathWithoutQuery() + "...", false);
-
                 byte[] bytes = byteUtils.convertFromString(newContent);
 
                 newReq = HttpRequest.httpRequest(req.httpService(),
@@ -518,6 +731,9 @@ public class TOTP
                 // This updates Content-Length so that the request doesn't fail when
                 // match.length() != c.generateCode().length()
                 newReq = newReq.withBody(newReq.body());
+
+                logOutput("[" + c.getName() + "]: Replaced content matching \"" + c.getMatch() + "\" for request "
+                        + req.method() + " " + req.pathWithoutQuery() + "...", false);
 
             }
 

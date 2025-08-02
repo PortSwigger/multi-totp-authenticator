@@ -7,13 +7,19 @@ import static com.stephensantilli.totp.TOTP.logOutput;
 
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.Image;
 import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.Robot;
 import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -27,7 +33,6 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
-
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.BinaryBitmap;
 import com.google.zxing.DecodeHintType;
@@ -49,7 +54,7 @@ public class Entry extends JPanel {
 
     private JRadioButton sha1Rad, sha256Rad, sha512Rad;
 
-    private JButton addBtn, scanBtn;
+    private JButton addBtn, scanBtn, pasteBtn, scopeBtn;
 
     public Entry(CodeListener listener) {
 
@@ -276,7 +281,7 @@ public class Entry extends JPanel {
             } catch (NotFoundException e) {
 
                 JOptionPane.showMessageDialog(
-                        api.userInterface().swingUtils().suiteFrame(),
+                        this,
                         "No QR code found.",
                         "Error",
                         JOptionPane.WARNING_MESSAGE);
@@ -284,7 +289,7 @@ public class Entry extends JPanel {
             } catch (Exception e) {
 
                 JOptionPane.showMessageDialog(
-                        api.userInterface().swingUtils().suiteFrame(),
+                        this,
                         e.getMessage(),
                         "Error",
                         JOptionPane.WARNING_MESSAGE);
@@ -306,6 +311,85 @@ public class Entry extends JPanel {
 
         this.add(scanBtn, scanBtnCons);
 
+        this.pasteBtn = new JButton("Paste QR");
+        pasteBtn.setFont(font.deriveFont(Font.BOLD, font.getSize() * 1.5f));
+
+        pasteBtn.addActionListener(l -> {
+
+            try {
+
+                String scanResult = pasteQR();
+                logOutput("Pasted QR code! Got: " + scanResult, false);
+
+                setEntryFromURI(scanResult);
+
+            } catch (NotFoundException e) {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "No QR code found.",
+                        "Error",
+                        JOptionPane.WARNING_MESSAGE);
+
+            } catch (Exception e) {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        e.getMessage(),
+                        "Error",
+                        JOptionPane.WARNING_MESSAGE);
+
+            }
+
+        });
+
+        GridBagConstraints pasteBtnCons = new GridBagConstraints();
+        pasteBtnCons.gridx = 8;
+        pasteBtnCons.gridy = 1;
+        pasteBtnCons.weightx = .5;
+        pasteBtnCons.weighty = .5;
+        pasteBtnCons.gridheight = 1;
+        pasteBtnCons.gridwidth = 1;
+        pasteBtnCons.insets = insets;
+        pasteBtnCons.fill = GridBagConstraints.BOTH;
+        pasteBtnCons.anchor = GridBagConstraints.EAST;
+
+        this.add(pasteBtn, pasteBtnCons);
+
+        this.scopeBtn = new JButton("Scope");
+        scopeBtn.setFont(font.deriveFont(Font.BOLD, font.getSize() * 1.5f));
+
+        scopeBtn.addActionListener(l -> {
+
+            try {
+
+                listener.openScopeDialog();
+
+            } catch (Exception e) {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        e.getMessage(),
+                        "Error",
+                        JOptionPane.WARNING_MESSAGE);
+
+            }
+
+        });
+
+        GridBagConstraints scopeBtnCons = new GridBagConstraints();
+        scopeBtnCons.gridx = 9;
+        scopeBtnCons.gridy = 0;
+        scopeBtnCons.weightx = .5;
+        scopeBtnCons.weighty = .5;
+        scopeBtnCons.gridheight = 1;
+        scopeBtnCons.gridwidth = 1;
+        scopeBtnCons.insets = insets;
+        scopeBtnCons.fill = GridBagConstraints.BOTH;
+        scopeBtnCons.anchor = GridBagConstraints.EAST;
+
+        this.add(scopeBtn, scopeBtnCons);
+
         this.addBtn = new JButton("Add");
         addBtn.setFont(font.deriveFont(Font.BOLD, font.getSize() * 1.5f));
 
@@ -321,17 +405,19 @@ public class Entry extends JPanel {
             } catch (Exception e) {
 
                 JOptionPane.showMessageDialog(
-                        api.userInterface().swingUtils().suiteFrame(),
+                        this,
                         e.getMessage(),
                         "Error",
                         JOptionPane.WARNING_MESSAGE);
+
+                e.printStackTrace();
 
             }
 
         });
 
         GridBagConstraints addBtnCons = new GridBagConstraints();
-        addBtnCons.gridx = 8;
+        addBtnCons.gridx = 9;
         addBtnCons.gridy = 1;
         addBtnCons.weightx = .5;
         addBtnCons.weighty = .5;
@@ -342,6 +428,54 @@ public class Entry extends JPanel {
         addBtnCons.anchor = GridBagConstraints.EAST;
 
         this.add(addBtn, addBtnCons);
+
+    }
+
+    public String getCrypto() {
+
+        ButtonModel bm = algoBtns.getSelection();
+
+        if (bm.equals(sha256Rad.getModel()))
+            return "HmacSHA256";
+        if (bm.equals(sha512Rad.getModel()))
+            return "HmacSHA512";
+        else
+            return "HmacSHA1";
+
+    }
+
+    public Code getCodeFromEntry() throws Exception {
+
+        String name = nameField.getText();
+        String secret = secretField.getText();
+
+        int digits = DEFAULT_DIGITS;
+        try {
+            digits = Integer.parseInt(this.digitsField.getText());
+        } catch (Exception e) {
+            throw new Exception("Unable to parse length of code entered!");
+        }
+
+        int duration = DEFAULT_DURATION;
+        try {
+            duration = Integer.parseInt(this.durationField.getText());
+        } catch (Exception e) {
+            throw new Exception("Unable to parse the duration!");
+        }
+
+        return new Code(name, secret, "_" + name + "_", digits, duration, getCrypto(), true);
+
+    }
+
+    public void resetEntry() {
+
+        this.secretField.setText("");
+        this.nameField.setText("Name");
+
+        this.digitsField.setText(DEFAULT_DIGITS + "");
+        this.durationField.setText(DEFAULT_DURATION + "");
+
+        algoBtns.setSelected(sha1Rad.getModel(), true);
 
     }
 
@@ -409,11 +543,46 @@ public class Entry extends JPanel {
         Rectangle screenRect = new Rectangle(Toolkit.getDefaultToolkit().getScreenSize());
         BufferedImage screenshot = robot.createScreenCapture(screenRect);
 
-        int width = screenshot.getWidth(), height = screenshot.getHeight();
+        return decodeQR(screenshot);
 
-        RGBLuminanceSource image = new RGBLuminanceSource(width,
+    }
+
+    private String pasteQR() throws Exception, NotFoundException {
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+
+        Object data;
+
+        try {
+            data = clipboard.getContents(this).getTransferData(DataFlavor.imageFlavor);
+        } catch (IOException e) {
+            throw new Exception("Unable to get an image from clipboard.");
+        } catch (UnsupportedFlavorException e) {
+            throw new Exception("Unable to get an image from clipboard.");
+        }
+
+        if (!(data instanceof Image))
+            throw new Exception("Pasted contents are not an image!");
+
+        Image screenshot = (Image) data;
+
+        BufferedImage image = new BufferedImage(screenshot.getWidth(null), screenshot.getHeight(null),
+                BufferedImage.TYPE_INT_ARGB);
+
+        Graphics2D graphics = image.createGraphics();
+        graphics.drawImage(screenshot, 0, 0, null);
+        graphics.dispose();
+
+        return decodeQR(image);
+
+    }
+
+    private String decodeQR(BufferedImage image) throws NotFoundException {
+
+        int width = image.getWidth(null), height = image.getHeight(null);
+
+        RGBLuminanceSource luminanace = new RGBLuminanceSource(width,
                 height,
-                screenshot.getRGB(0,
+                image.getRGB(0,
                         0,
                         width,
                         height,
@@ -421,60 +590,12 @@ public class Entry extends JPanel {
                         0,
                         width));
 
-        HybridBinarizer binarizer = new HybridBinarizer(image);
+        HybridBinarizer binarizer = new HybridBinarizer(luminanace);
         BinaryBitmap bitmap = new BinaryBitmap(binarizer);
 
         MultiFormatReader reader = new MultiFormatReader();
 
         return reader.decode(bitmap, Map.of(DecodeHintType.POSSIBLE_FORMATS, List.of(BarcodeFormat.QR_CODE))).getText();
-
-    }
-
-    public String getCrypto() {
-
-        ButtonModel bm = algoBtns.getSelection();
-
-        if (bm.equals(sha256Rad.getModel()))
-            return "HmacSHA256";
-        if (bm.equals(sha512Rad.getModel()))
-            return "HmacSHA512";
-        else
-            return "HmacSHA1";
-
-    }
-
-    public Code getCodeFromEntry() throws Exception {
-
-        String name = nameField.getText();
-        String secret = secretField.getText();
-
-        int digits = DEFAULT_DIGITS;
-        try {
-            digits = Integer.parseInt(this.digitsField.getText());
-        } catch (Exception e) {
-            throw new Exception("Unable to parse length of code entered!");
-        }
-
-        int duration = DEFAULT_DURATION;
-        try {
-            duration = Integer.parseInt(this.durationField.getText());
-        } catch (Exception e) {
-            throw new Exception("Unable to parse the duration!");
-        }
-
-        return new Code(name, secret, "_" + name + "_", digits, duration, getCrypto(), true);
-
-    }
-
-    public void resetEntry() {
-
-        this.secretField.setText("");
-        this.nameField.setText("Name");
-
-        this.digitsField.setText(DEFAULT_DIGITS + "");
-        this.durationField.setText(DEFAULT_DURATION + "");
-
-        algoBtns.setSelected(sha1Rad.getModel(), true);
 
     }
 
