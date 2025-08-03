@@ -67,7 +67,7 @@ This is the number of digits of the TOTP code to generate. This will almost alwa
 This allows you to select the hashing algorithm that the application expects. This will almost always be SHA-1, which uses the HMAC-SHA-1 hash function. Some applications may use SHA-256 or SHA-512 hashing instead.
 
 ### Scanning QR Codes
-QR codes can be used to automatically populate the values detailed in [Adding a code](#adding-a-code). There are two ways to use QR codes.
+QR codes can be used to automatically populate the values detailed in [Adding a code](#adding-a-code). There are two ways to use QR codes, detailed below. See [Acknowledgements](#acknowledgements) for details about the URI specification used.
 
 #### Scan QR
 This will scan a QR code that is on your screen. In order for QR codes to be scanned, you must have the code and Burp visible on the same monitor. Depending on your operating system, you may also have to give Burp Suite access to take a screen capture. If a QR code is successfully scanned, the encoded values will be added to their respective fields. Adjust them or simply press "Add."
@@ -154,3 +154,4 @@ This option enables additional logging for debugging purposes. This can affect p
 ## Acknowledgements
 - TOTPs are generated using code from [RFC 6238 Appendix A](https://datatracker.ietf.org/doc/html/rfc6238#appendix-A) by Johan Rydell, published under the IETF Trust's Revised BSD License.
 - QR code scanning is done using the [ZXing](https://github.com/zxing/zxing) library, which is licensed under the [Apache License v2.0](http://www.apache.org/licenses/LICENSE-2.0.html).
+- There is no official standard for the OTP Auth URI format (`otpauth://`.) However, this extension follows [this draft specification by I. Y. Eroglu](https://linuxgemini.github.io/otpauth-spec-draft/).
