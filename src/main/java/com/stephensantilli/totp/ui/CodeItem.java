@@ -1,10 +1,12 @@
 package com.stephensantilli.totp.ui;
 
 import static com.stephensantilli.totp.TOTP.api;
+import static com.stephensantilli.totp.TOTP.logOutput;
 
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -20,6 +22,7 @@ import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JTextField;
@@ -72,8 +75,17 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
         addMouseListener(this);
 
+        FontMetrics metrics = getFontMetrics(font);
+
+        // TODO Things get weird if this panel isn't given enough height.
+        // At a high enough font size even this isn't enough.
+        int maxHeight = metrics.getHeight() + 215;
+
         setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
-        setMaximumSize(new Dimension(Integer.MAX_VALUE, 250));
+        setMaximumSize(new Dimension(Integer.MAX_VALUE, maxHeight));
+        setPreferredSize(new Dimension(getWidth(), maxHeight));
+
+        codeLbl.setText(formatCode(code.generateCode()));
 
     }
 
@@ -223,7 +235,7 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         nameLblCons.gridwidth = 1;
         nameLblCons.insets = insets;
         nameLblCons.fill = GridBagConstraints.BOTH;
-        nameLblCons.anchor = GridBagConstraints.CENTER;
+        nameLblCons.anchor = GridBagConstraints.WEST;
 
         this.algoLbl = new JLabel(formatCrypto(code.getCrypto()));
         algoLbl.setFont(font.deriveFont(Font.BOLD));
@@ -245,8 +257,9 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         algoLblCons.fill = GridBagConstraints.BOTH;
         algoLblCons.anchor = GridBagConstraints.EAST;
 
-        this.codeLbl = new JLabel(formatCode(code.generateCode()));
+        this.codeLbl = new JLabel("888 888");
         codeLbl.setFont(font.deriveFont(Font.BOLD, font.getSize() * 2f));
+        codeLbl.setPreferredSize(codeLbl.getPreferredSize());
         codeLbl.addMouseListener(this);
         codeLbl.setToolTipText(code.generateCode());
         codeLbl.setHorizontalAlignment(JLabel.CENTER);
@@ -254,8 +267,8 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         GridBagConstraints codeLblCons = new GridBagConstraints();
         codeLblCons.gridx = 0;
         codeLblCons.gridy = 1;
-        codeLblCons.weightx = .5;
-        codeLblCons.weighty = .5;
+        codeLblCons.weightx = 0;
+        codeLblCons.weighty = 0;
         codeLblCons.gridheight = 1;
         codeLblCons.gridwidth = 1;
         codeLblCons.insets = insets;
@@ -268,7 +281,7 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         GridBagConstraints progressBarCons = new GridBagConstraints();
         progressBarCons.gridx = 0;
         progressBarCons.gridy = 2;
-        progressBarCons.weightx = .5;
+        progressBarCons.weightx = 0;
         progressBarCons.weighty = .5;
         progressBarCons.gridheight = 1;
         progressBarCons.gridwidth = 1;
@@ -276,16 +289,10 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         progressBarCons.fill = GridBagConstraints.BOTH;
         progressBarCons.anchor = GridBagConstraints.CENTER;
 
-        this.copyBtn = new JButton("Copy Code");
-        copyBtn.setFont(font);
-        copyBtn.addMouseListener(this);
-        copyBtn.setToolTipText("Copy TOTP to clipboard");
-
         this.add(nameLbl, nameLblCons);
         this.add(algoLbl, algoLblCons);
         this.add(codeLbl, codeLblCons);
         this.add(progressBar, progressBarCons);
-
     }
 
     private void createMatchComponents() {
@@ -366,6 +373,12 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
     private void createButtons() {
 
+        this.copyBtn = new JButton("Copy Code");
+        copyBtn.setFont(font);
+        copyBtn.addMouseListener(this);
+        copyBtn.setToolTipText("Copy TOTP to clipboard");
+        copyBtn.setPreferredSize(copyBtn.getPreferredSize());
+
         GridBagConstraints copyBtnCons = new GridBagConstraints();
         copyBtnCons.gridx = 2;
         copyBtnCons.gridy = 1;
@@ -417,7 +430,12 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
         removeBtn.addActionListener(l -> {
 
-            listener.removeCode(this);
+            int res = JOptionPane.showConfirmDialog(SwingUtilities.getWindowAncestor(this),
+                    "Are you sure you want to remove " + code.getName() + "? This cannot be undone.",
+                    "Remove Code Confirmation", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+
+            if (res == JOptionPane.OK_OPTION)
+                listener.removeCode(this);
 
         });
 

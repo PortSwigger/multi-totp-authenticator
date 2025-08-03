@@ -390,7 +390,7 @@ public class ScopeDialog extends JPanel implements TableModelListener, ItemListe
             } catch (Exception e) {
 
                 JOptionPane.showMessageDialog(
-                        this,
+                        SwingUtilities.getWindowAncestor(this),
                         e.getMessage(),
                         "Error",
                         JOptionPane.WARNING_MESSAGE);
@@ -479,7 +479,7 @@ public class ScopeDialog extends JPanel implements TableModelListener, ItemListe
                 } catch (Exception e) {
 
                     JOptionPane.showMessageDialog(
-                            this,
+                            SwingUtilities.getWindowAncestor(this),
                             e.getMessage(),
                             "Error",
                             JOptionPane.WARNING_MESSAGE);
@@ -664,7 +664,7 @@ public class ScopeDialog extends JPanel implements TableModelListener, ItemListe
             } catch (Exception ex) {
 
                 JOptionPane.showMessageDialog(
-                        this,
+                        SwingUtilities.getWindowAncestor(this),
                         ex.getMessage(),
                         "Error",
                         JOptionPane.WARNING_MESSAGE);

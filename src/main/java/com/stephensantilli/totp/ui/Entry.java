@@ -33,6 +33,8 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
+
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.BinaryBitmap;
 import com.google.zxing.DecodeHintType;
@@ -266,8 +268,10 @@ public class Entry extends JPanel {
         algoBtns.add(sha256Rad);
         algoBtns.add(sha512Rad);
 
+        Font btnFont = font.deriveFont(Font.BOLD, font.getSize() * 1.25f);
+
         this.scanBtn = new JButton("Scan QR");
-        scanBtn.setFont(font.deriveFont(Font.BOLD, font.getSize() * 1.5f));
+        scanBtn.setFont(btnFont);
 
         scanBtn.addActionListener(l -> {
 
@@ -281,7 +285,7 @@ public class Entry extends JPanel {
             } catch (NotFoundException e) {
 
                 JOptionPane.showMessageDialog(
-                        this,
+                        SwingUtilities.getWindowAncestor(this),
                         "No QR code found.",
                         "Error",
                         JOptionPane.WARNING_MESSAGE);
@@ -289,7 +293,7 @@ public class Entry extends JPanel {
             } catch (Exception e) {
 
                 JOptionPane.showMessageDialog(
-                        this,
+                        SwingUtilities.getWindowAncestor(this),
                         e.getMessage(),
                         "Error",
                         JOptionPane.WARNING_MESSAGE);
@@ -312,7 +316,7 @@ public class Entry extends JPanel {
         this.add(scanBtn, scanBtnCons);
 
         this.pasteBtn = new JButton("Paste QR");
-        pasteBtn.setFont(font.deriveFont(Font.BOLD, font.getSize() * 1.5f));
+        pasteBtn.setFont(btnFont);
 
         pasteBtn.addActionListener(l -> {
 
@@ -326,7 +330,7 @@ public class Entry extends JPanel {
             } catch (NotFoundException e) {
 
                 JOptionPane.showMessageDialog(
-                        this,
+                        SwingUtilities.getWindowAncestor(this),
                         "No QR code found.",
                         "Error",
                         JOptionPane.WARNING_MESSAGE);
@@ -334,7 +338,7 @@ public class Entry extends JPanel {
             } catch (Exception e) {
 
                 JOptionPane.showMessageDialog(
-                        this,
+                        SwingUtilities.getWindowAncestor(this),
                         e.getMessage(),
                         "Error",
                         JOptionPane.WARNING_MESSAGE);
@@ -357,7 +361,7 @@ public class Entry extends JPanel {
         this.add(pasteBtn, pasteBtnCons);
 
         this.scopeBtn = new JButton("Scope");
-        scopeBtn.setFont(font.deriveFont(Font.BOLD, font.getSize() * 1.5f));
+        scopeBtn.setFont(btnFont);
 
         scopeBtn.addActionListener(l -> {
 
@@ -368,7 +372,7 @@ public class Entry extends JPanel {
             } catch (Exception e) {
 
                 JOptionPane.showMessageDialog(
-                        this,
+                        SwingUtilities.getWindowAncestor(this),
                         e.getMessage(),
                         "Error",
                         JOptionPane.WARNING_MESSAGE);
@@ -391,8 +395,7 @@ public class Entry extends JPanel {
         this.add(scopeBtn, scopeBtnCons);
 
         this.addBtn = new JButton("Add");
-        addBtn.setFont(font.deriveFont(Font.BOLD, font.getSize() * 1.5f));
-
+        addBtn.setFont(btnFont);
         addBtn.setBackground(new Color(255, 102, 51));
         addBtn.setForeground(Color.WHITE);
 
@@ -405,7 +408,7 @@ public class Entry extends JPanel {
             } catch (Exception e) {
 
                 JOptionPane.showMessageDialog(
-                        this,
+                        SwingUtilities.getWindowAncestor(this),
                         e.getMessage(),
                         "Error",
                         JOptionPane.WARNING_MESSAGE);

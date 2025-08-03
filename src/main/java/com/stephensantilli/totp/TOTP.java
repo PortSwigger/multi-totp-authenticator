@@ -519,6 +519,7 @@ public class TOTP
         scopeDialog.setTools(scope.getTools());
 
         scopeDialogWrapper.pack();
+        scopeDialogWrapper.setMinimumSize(scopeDialogWrapper.getSize());
         scopeDialogWrapper.setVisible(true);
 
         logOutput("Scope dialog opened!", true);
