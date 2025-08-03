@@ -4,7 +4,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.ScrollPaneConstants;
 
-import com.stephensantilli.totp.CodeListener;
+import com.stephensantilli.totp.UIListener;
 
 public class TOTPPane extends JSplitPane {
 
@@ -12,7 +12,7 @@ public class TOTPPane extends JSplitPane {
 
     private CodeTable codeTable;
 
-    public TOTPPane(CodeListener listener) {
+    public TOTPPane(UIListener listener) {
 
         super(VERTICAL_SPLIT);
 

@@ -51,21 +51,29 @@ import burp.api.montoya.ui.settings.SettingsPanelWithData;
 import burp.api.montoya.utilities.ByteUtils;
 
 public class TOTP
-        implements BurpExtension, ExtensionUnloadingHandler, CodeListener, HttpHandler, SessionHandlingAction,
+        implements BurpExtension, ExtensionUnloadingHandler, UIListener, HttpHandler, SessionHandlingAction,
         ContextMenuItemsProvider {
 
     public static final int DEFAULT_DIGITS = 6, DEFAULT_DURATION = 30;
 
-    public static final int ALL_URLS = 0, SUITE_SCOPE = 1, CUSTOM_SCOPE = 2;
-
     public static final String PERSISTENCE_SETTING = "Save TOTPs to project file",
-            REGEX_SETTING = "Use regex when matching TOTPs",
-            DEBUG_SETTING = "Enable verbose logging",
-            SCOPE_OPTION_KEY = "_USE_SUITE_SCOPE",
+            MATCH_SETTING = "Use regex when matching TOTPs",
+            DEBUG_SETTING = "Enable verbose logging";
+
+    public static final String SCOPE_OPTION_KEY = "_SCOPE_OPTION",
             PREFIXES_KEY = "_PREFIX_LIST",
-            TOOLS_KEY = "_TOOLS_LIST",
-            INCLUDE_SUBDOMAINS_SUFFIX = "_include_subdomains",
-            IS_ENABLED_SUFFIX = "_is_enabled";
+            TOOLS_KEY = "_TOOLS_LIST";
+
+    public static final String NAMES_KEY = "_NAMES",
+            SECRET_KEY_SUFFIX = "_secret",
+            CRYPTO_KEY_SUFFIX = "_crypto",
+            MATCH_KEY_SUFFIX = "_regex",
+            DIGITS_KEY_SUFFIX = "_digits",
+            DURATION_KEY_SUFFIX = "_duration",
+            ENABLED_KEY_SUFFIX = "_enabled";
+
+    public static final String INCLUDE_SUBDOMAINS_SUFFIX = "_include_subdomains",
+            ENABLED_SUFFIX = "_is_enabled";
 
     public static MontoyaApi api;
 
@@ -126,7 +134,7 @@ public class TOTP
                 .withKeywords("TOTP", "extension", "authenticator", "time-based", "one-time", "password", "code",
                         "one time", "2fa", "mfa", "two factor")
                 .withSettings(SettingsPanelSetting.booleanSetting(PERSISTENCE_SETTING, true))
-                .withSettings(SettingsPanelSetting.booleanSetting(REGEX_SETTING, false))
+                .withSettings(SettingsPanelSetting.booleanSetting(MATCH_SETTING, false))
                 .withSettings(SettingsPanelSetting.booleanSetting(DEBUG_SETTING, false))
                 .build();
 
@@ -145,13 +153,8 @@ public class TOTP
         api.http().registerSessionHandlingAction(this);
         logOutput("Registered session handling action.", true);
 
-        PersistedObject data = api.persistence().extensionData();
-
-        if (data.getStringList("names") == null)
-            data.setStringList("names", PersistedList.persistedStringList());
-
         if (!settings.getBoolean(PERSISTENCE_SETTING))
-            clearSaved();
+            clearStorage();
 
         this.timer = new Timer(100, l -> {
 
@@ -170,24 +173,57 @@ public class TOTP
 
     }
 
-    public void clearSaved() {
+    public void clearStorage() {
+
+        logOutput("Clearing storage...", false);
 
         PersistedObject data = api.persistence().extensionData();
 
-        data.setStringList("names", PersistedList.persistedStringList());
+        PersistedList<String> names = data.getStringList(NAMES_KEY);
 
-    }
+        if (names != null) {
 
-    public void saveAll() {
+            for (String name : names) {
 
-        for (Code code : codes) {
+                data.deleteString(name + SECRET_KEY_SUFFIX);
+                data.deleteString(name + CRYPTO_KEY_SUFFIX);
+                data.deleteString(name + MATCH_KEY_SUFFIX);
+                data.deleteInteger(name + DIGITS_KEY_SUFFIX);
+                data.deleteInteger(name + DURATION_KEY_SUFFIX);
+                data.deleteBoolean(name + ENABLED_KEY_SUFFIX);
 
-            saveCode(code);
+            }
 
         }
 
+        PersistedList<String> prefixes = data.getStringList(PREFIXES_KEY);
+
+        if (prefixes != null) {
+
+            for (String prefix : prefixes) {
+
+                data.deleteBoolean(prefix + INCLUDE_SUBDOMAINS_SUFFIX);
+                data.deleteBoolean(prefix + ENABLED_SUFFIX);
+
+            }
+
+        }
+
+        data.deleteStringList(NAMES_KEY);
+        data.deleteStringList(PREFIXES_KEY);
+        data.deleteInteger(SCOPE_OPTION_KEY);
+        data.deleteStringList(TOOLS_KEY);
+
+        logOutput("Storage cleared!", false);
+
     }
 
+    /**
+     * Loads a code from the data store.
+     * 
+     * @param name The name of a saved {@link Code}.
+     * @throws Exception If the code is unable to be retrieved from the data store.
+     */
     public void loadCode(String name) throws Exception {
 
         PersistedObject data = api.persistence().extensionData();
@@ -196,16 +232,16 @@ public class TOTP
         int digits, duration;
         boolean enabled;
 
-        secret = data.getString(name + "_secret");
-        crypto = data.getString(name + "_crypto");
-        regex = data.getString(name + "_regex");
-        digits = data.getInteger(name + "_digits");
-        duration = data.getInteger(name + "_duration");
-        enabled = data.getBoolean(name + "_enabled");
+        secret = data.getString(name + SECRET_KEY_SUFFIX);
+        crypto = data.getString(name + CRYPTO_KEY_SUFFIX);
+        regex = data.getString(name + MATCH_KEY_SUFFIX);
+        digits = data.getInteger(name + DIGITS_KEY_SUFFIX);
+        duration = data.getInteger(name + DURATION_KEY_SUFFIX);
+        enabled = data.getBoolean(name + ENABLED_KEY_SUFFIX);
 
         if (secret == null || crypto == null || regex == null || digits == 0 || duration == 0)
             throw new Exception(
-                    "Unable to load \"" + name + "\" from storage."
+                    "Unable to load \"" + name + "\" from storage due to null values."
                             + "\nSecret=" + secret
                             + "\nCrypto=" + crypto
                             + "\nRegex=" + regex
@@ -219,45 +255,18 @@ public class TOTP
 
         } catch (Exception e) {
             throw new Exception(
-                    "Unable to load \"" + name + "\" from storage."
+                    "Unable to load \"" + name + "\" from storage. " + e.getMessage()
                             + "\nSecret=" + secret
                             + "\nCrypto=" + crypto
                             + "\nRegex=" + regex
                             + "\nDigits=" + digits
                             + "\nDuration:" + duration
-                            + "\nEnabled=" + enabled
-                            + "\n" + e.getMessage());
+                            + "\nEnabled=" + enabled);
         }
 
     }
 
-    public void saveCode(Code code) {
-
-        if (!settings.getBoolean(PERSISTENCE_SETTING))
-            return;
-
-        PersistedObject data = api.persistence().extensionData();
-
-        String name = code.getName();
-
-        data.setString(name + "_secret", code.getBase32Secret());
-        data.setString(name + "_crypto", code.getCrypto());
-        data.setString(name + "_regex", code.getMatch());
-        data.setInteger(name + "_digits", code.getDigits());
-        data.setInteger(name + "_duration", code.getDuration());
-        data.setBoolean(name + "_enabled", code.isEnabled());
-
-        PersistedList<String> names = data.getStringList("names");
-
-        if (!names.contains(name))
-            names.add(name);
-
-        data.setStringList("names", names);
-
-        logOutput("Saved \"" + name + "\" to project store.", false);
-
-    }
-
+    @Override
     public void addCode(Code code, boolean save) throws Exception {
 
         for (Code comp : codes) {
@@ -288,7 +297,7 @@ public class TOTP
     }
 
     @Override
-    public void removeCode(CodeItem codeItem) {
+    public void removeCodeItem(CodeItem codeItem) {
 
         CodeTable codeTable = totpPane.getCodeTable();
 
@@ -300,20 +309,25 @@ public class TOTP
         if (codes.size() == 0)
             timer.stop();
 
-        PersistedObject data = api.persistence().extensionData();
-
         String name = code.getName();
 
-        data.deleteString(name + "_secret");
-        data.deleteString(name + "_crypto");
-        data.deleteString(name + "_regex");
-        data.deleteInteger(name + "_digits");
-        data.deleteInteger(name + "_duration");
+        if (settings.getBoolean(PERSISTENCE_SETTING)) {
 
-        PersistedList<String> names = data.getStringList("names");
-        names.remove(name);
+            PersistedObject data = api.persistence().extensionData();
 
-        data.setStringList("names", names);
+            data.deleteString(name + SECRET_KEY_SUFFIX);
+            data.deleteString(name + CRYPTO_KEY_SUFFIX);
+            data.deleteString(name + MATCH_KEY_SUFFIX);
+            data.deleteInteger(name + DIGITS_KEY_SUFFIX);
+            data.deleteInteger(name + DURATION_KEY_SUFFIX);
+            data.deleteBoolean(name + ENABLED_KEY_SUFFIX);
+
+            PersistedList<String> names = data.getStringList(NAMES_KEY);
+            names.remove(name);
+
+            data.setStringList(NAMES_KEY, names);
+
+        }
 
         logOutput("Removed \"" + name + "\" from the project.", false);
 
@@ -332,7 +346,7 @@ public class TOTP
 
             PersistedObject data = api.persistence().extensionData();
 
-            data.setString(name + "_regex", match);
+            data.setString(name + MATCH_KEY_SUFFIX, match);
 
         }
 
@@ -345,22 +359,14 @@ public class TOTP
     @Override
     public void extensionUnloaded() {
 
-        PersistedObject data = api.persistence().extensionData();
+        logOutput("Unloading TOTP...", false);
 
         timer.stop();
-
-        logOutput("Unloading TOTP...", false);
 
         if (!settings.getBoolean(PERSISTENCE_SETTING)) {
 
             logOutput("Saving turned off, clearing data store...", false);
-            clearSaved();
-
-        } else if (codes.size() != data.getStringList("names").size()) {
-
-            logOutput("Mismatch with data store, re-saving all codes...", false);
-            clearSaved();
-            saveAll();
+            clearStorage();
 
         }
 
@@ -447,7 +453,7 @@ public class TOTP
         data.setStringList(PREFIXES_KEY, prefixes);
 
         data.setBoolean(prefix + INCLUDE_SUBDOMAINS_SUFFIX, item.getIncludeSubdomains());
-        data.setBoolean(prefix + IS_ENABLED_SUFFIX, item.isEnabled());
+        data.setBoolean(prefix + ENABLED_SUFFIX, item.isEnabled());
 
         if (scopeDialog != null)
             scopeDialog.addScope(item);
@@ -457,18 +463,19 @@ public class TOTP
     }
 
     @Override
-    public void removeScope(int index) throws Exception {
+    public void removeScope(int index) throws IndexOutOfBoundsException {
 
         PersistedObject data = api.persistence().extensionData();
 
         PersistedList<String> prefixes = data.getStringList(PREFIXES_KEY);
+
         String prefix = prefixes.get(index);
 
         prefixes.remove(prefix);
 
         data.setStringList(PREFIXES_KEY, prefixes);
 
-        data.deleteBoolean(prefix + IS_ENABLED_SUFFIX);
+        data.deleteBoolean(prefix + ENABLED_SUFFIX);
         data.deleteBoolean(prefix + INCLUDE_SUBDOMAINS_SUFFIX);
 
         scope.removePrefix(index);
@@ -487,22 +494,28 @@ public class TOTP
 
         PersistedList<String> tools = data.getStringList(TOOLS_KEY);
 
+        if (tools == null)
+            tools = PersistedList.persistedStringList();
+
         if (enabled) {
 
             scope.addTool(tool);
 
-            if (!tools.contains(tool.toString()))
-                tools.add(tool.toString());
+            if (!tools.contains(tool.name()))
+                tools.add(tool.name());
 
         } else {
 
             scope.removeTool(tool);
 
-            tools.remove(tool.toString());
+            tools.remove(tool.name());
 
         }
 
-        logOutput((enabled ? "Enabled" : "Disabled") + " " + tool.toolName() + ".", true);
+        if (settings.getBoolean(PERSISTENCE_SETTING))
+            data.setStringList(TOOLS_KEY, tools);
+
+        logOutput("Set " + tool.toolName() + " to " + (enabled ? "enabled" : "disabled") + ".", true);
 
     }
 
@@ -547,6 +560,7 @@ public class TOTP
     public void closeScopeDialog() {
 
         scopeDialogWrapper.dispose();
+        scopeDialogWrapper = null;
         scopeDialog = null;
 
         logOutput("Scope dialog closed!", true);
@@ -554,7 +568,7 @@ public class TOTP
     }
 
     @Override
-    public void setItemPrefix(String prefix, int index) throws Exception {
+    public void setItemPrefix(String prefix, int index) throws IndexOutOfBoundsException {
 
         ScopeItem item = scope.getPrefixes().get(index);
 
@@ -565,7 +579,7 @@ public class TOTP
     }
 
     @Override
-    public void setItemEnabled(boolean enabled, int index) throws Exception {
+    public void setItemEnabled(boolean enabled, int index) throws IndexOutOfBoundsException {
 
         ScopeItem item = scope.getPrefixes().get(index);
 
@@ -576,7 +590,7 @@ public class TOTP
     }
 
     @Override
-    public void setItemIncludeSubdomains(boolean includeSubdomains, int index) throws Exception {
+    public void setItemIncludeSubdomains(boolean includeSubdomains, int index) throws IndexOutOfBoundsException {
 
         ScopeItem item = scope.getPrefixes().get(index);
 
@@ -633,9 +647,46 @@ public class TOTP
 
                 }
 
+                logOutput("Menu items provided!", true);
+
                 return List.of(codeMenu, placeholderMenu);
 
         }
+
+    }
+
+    /**
+     * Saves a code to the data store if persistence is enabled.
+     * 
+     * @param code The code that should be saved.
+     */
+    private void saveCode(Code code) {
+
+        if (!settings.getBoolean(PERSISTENCE_SETTING))
+            return;
+
+        PersistedObject data = api.persistence().extensionData();
+
+        String name = code.getName();
+
+        data.setString(name + SECRET_KEY_SUFFIX, code.getBase32Secret());
+        data.setString(name + CRYPTO_KEY_SUFFIX, code.getCrypto());
+        data.setString(name + MATCH_KEY_SUFFIX, code.getMatch());
+        data.setInteger(name + DIGITS_KEY_SUFFIX, code.getDigits());
+        data.setInteger(name + DURATION_KEY_SUFFIX, code.getDuration());
+        data.setBoolean(name + ENABLED_KEY_SUFFIX, code.isEnabled());
+
+        PersistedList<String> names = data.getStringList(NAMES_KEY);
+
+        if (names == null)
+            names = PersistedList.persistedStringList();
+
+        if (!names.contains(name))
+            names.add(name);
+
+        data.setStringList(NAMES_KEY, names);
+
+        logOutput("Saved \"" + name + "\" to project store.", false);
 
     }
 
@@ -712,13 +763,16 @@ public class TOTP
 
         try {
 
-            ScopeOption suiteScope = ScopeOption.valueOf(data.getInteger(SCOPE_OPTION_KEY));
-            scope.setSuiteScope(suiteScope);
+            if (data.getInteger(SCOPE_OPTION_KEY) != null) {
+
+                ScopeOption suiteScope = ScopeOption.valueOf(data.getInteger(SCOPE_OPTION_KEY));
+                scope.setSuiteScope(suiteScope);
+
+            }
 
         } catch (Exception e) {
 
             logError(e.getMessage(), false);
-            e.printStackTrace();
 
         }
 
@@ -735,7 +789,7 @@ public class TOTP
                 try {
 
                     boolean includeSubdomains = data.getBoolean(item + INCLUDE_SUBDOMAINS_SUFFIX);
-                    boolean enabled = data.getBoolean(item + IS_ENABLED_SUFFIX);
+                    boolean enabled = data.getBoolean(item + ENABLED_SUFFIX);
 
                     scope.addItem(new ScopeItem(item, includeSubdomains, enabled));
 
@@ -788,11 +842,19 @@ public class TOTP
         if (!settings.getBoolean(PERSISTENCE_SETTING))
             return;
 
-        logOutput("Loading saved codes...", true);
+        logOutput("Loading saved codes...", false);
 
         PersistedObject data = api.persistence().extensionData();
 
-        PersistedList<String> codeNames = data.getStringList("names");
+        PersistedList<String> codeNames = data.getStringList(NAMES_KEY);
+
+        if (codeNames == null) {
+
+            logOutput("No saved codes to load!", false);
+
+            return;
+
+        }
 
         for (String name : codeNames) {
 
@@ -818,7 +880,7 @@ public class TOTP
 
         });
 
-        logOutput("Saved codes loaded!", true);
+        logOutput("Saved codes loaded!", false);
 
     }
 
@@ -828,7 +890,7 @@ public class TOTP
 
         ByteUtils byteUtils = api.utilities().byteUtils();
 
-        boolean useRegex = TOTP.settings.getBoolean(TOTP.REGEX_SETTING);
+        boolean useRegex = TOTP.settings.getBoolean(TOTP.MATCH_SETTING);
 
         String content = byteUtils.convertToString(req.toByteArray().getBytes());
 

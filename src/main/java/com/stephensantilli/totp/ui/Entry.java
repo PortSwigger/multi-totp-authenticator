@@ -43,7 +43,7 @@ import com.google.zxing.NotFoundException;
 import com.google.zxing.RGBLuminanceSource;
 import com.google.zxing.common.HybridBinarizer;
 import com.stephensantilli.totp.Code;
-import com.stephensantilli.totp.CodeListener;
+import com.stephensantilli.totp.UIListener;
 import com.stephensantilli.totp.TOTP;
 
 public class Entry extends JPanel {
@@ -58,7 +58,7 @@ public class Entry extends JPanel {
 
     private JButton addBtn, scanBtn, pasteBtn, scopeBtn;
 
-    public Entry(CodeListener listener) {
+    public Entry(UIListener listener) {
 
         GridBagLayout layout = new GridBagLayout();
 
@@ -376,7 +376,7 @@ public class Entry extends JPanel {
                         e.getMessage(),
                         "Error",
                         JOptionPane.WARNING_MESSAGE);
-
+                e.printStackTrace();
             }
 
         });
@@ -492,7 +492,7 @@ public class Entry extends JPanel {
         Matcher matcher = pattern.matcher(uri);
 
         if (!matcher.matches())
-            throw new Exception("Malformed URI!");
+            throw new Exception("Invalid or malformed TOTP URI!");
 
         String uriType = matcher.group("type"),
                 uriLabel = matcher.group("label"),

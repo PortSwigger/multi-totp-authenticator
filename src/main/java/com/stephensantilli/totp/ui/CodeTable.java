@@ -6,15 +6,15 @@ import javax.swing.BoxLayout;
 import javax.swing.JPanel;
 
 import com.stephensantilli.totp.Code;
-import com.stephensantilli.totp.CodeListener;
+import com.stephensantilli.totp.UIListener;
 
 public class CodeTable extends JPanel {
 
     private ArrayList<CodeItem> codeItems;
 
-    private CodeListener listener;
+    private UIListener listener;
 
-    public CodeTable(CodeListener listener) {
+    public CodeTable(UIListener listener) {
 
         this.codeItems = new ArrayList<>();
         this.listener = listener;

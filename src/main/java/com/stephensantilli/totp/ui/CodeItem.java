@@ -31,7 +31,7 @@ import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import com.stephensantilli.totp.Code;
-import com.stephensantilli.totp.CodeListener;
+import com.stephensantilli.totp.UIListener;
 
 import burp.api.montoya.ui.Theme;
 
@@ -47,7 +47,7 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
     private JProgressBar progressBar;
 
-    private CodeListener listener;
+    private UIListener listener;
 
     private JCheckBox enabledBox;
 
@@ -55,7 +55,7 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
     private Font font;
 
-    public CodeItem(Code code, CodeListener listener) {
+    public CodeItem(Code code, UIListener listener) {
 
         this.code = code;
         this.listener = listener;
@@ -68,8 +68,8 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         int inset = 10;
         this.insets = new Insets(inset, inset, inset, inset);
 
-        createMatchComponents();
         createCodeDisplay();
+        createMatchComponents();
         createButtons();
 
         addMouseListener(this);
@@ -188,7 +188,7 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         return removeBtn;
     }
 
-    public CodeListener getListener() {
+    public UIListener getListener() {
 
         return listener;
     }
@@ -220,7 +220,9 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
     private void createCodeDisplay() {
 
-        this.nameLbl = new JLabel(code.getName());
+        this.nameLbl = new JLabel("XXXXXXXXXXXXXXXXXXXX");
+        nameLbl.setPreferredSize(nameLbl.getPreferredSize());
+        nameLbl.setText(code.getName());
         nameLbl.setFont(font.deriveFont(Font.BOLD));
         nameLbl.addMouseListener(this);
         nameLbl.setToolTipText("Name: " + code.getName());
@@ -312,12 +314,24 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         matchLblCons.fill = GridBagConstraints.BOTH;
         matchLblCons.anchor = GridBagConstraints.CENTER;
 
-        this.matchField = new JTextField(code.getMatch());
+        this.add(matchLbl, matchLblCons);
+
+        this.matchField = new JTextField("XXXXXXXXXXXXXXXXXXXX");
+        matchField.setPreferredSize(matchField.getSize());
+        matchField.setText(code.getMatch());
         matchField.setFont(font);
         matchField.addMouseListener(this);
         matchField.addKeyListener(this);
-        matchField.setColumns(10);
         matchField.setEnabled(code.isEnabled());
+
+        boolean darkMode = api.userInterface().currentTheme() == Theme.DARK;
+
+        Color matchFieldBorderColor = darkMode ? new Color(0, 0, 0, 0) : Color.LIGHT_GRAY;
+
+        Border matchFieldLineBorder = BorderFactory.createLineBorder(matchFieldBorderColor, 1);
+        Border matchFieldMarginBorder = BorderFactory.createEmptyBorder(5, 5, 5, 5);
+
+        matchField.setBorder(new CompoundBorder(matchFieldLineBorder, matchFieldMarginBorder));
 
         GridBagConstraints matchFieldCons = new GridBagConstraints();
         matchFieldCons.gridx = 1;
@@ -330,11 +344,7 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         matchFieldCons.fill = GridBagConstraints.BOTH;
         matchFieldCons.anchor = GridBagConstraints.CENTER;
 
-        boolean darkMode = api.userInterface().currentTheme() == Theme.DARK;
-        Color normal = darkMode ? new Color(0, 0, 0, 0) : Color.LIGHT_GRAY;
-        Border matchFieldLineBorder = BorderFactory.createLineBorder(normal, 1);
-        Border matchFieldMarginBorder = BorderFactory.createEmptyBorder(5, 5, 5, 5);
-        matchField.setBorder(new CompoundBorder(matchFieldLineBorder, matchFieldMarginBorder));
+        this.add(matchField, matchFieldCons);
 
         this.enabledBox = new JCheckBox();
         enabledBox.setFont(font);
@@ -364,8 +374,6 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
         });
 
-        this.add(matchLbl, matchLblCons);
-        this.add(matchField, matchFieldCons);
         this.add(enabledBox, enabledBoxCons);
 
     }
@@ -410,6 +418,8 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
         });
 
+        this.add(copyBtn, copyBtnCons);
+
         this.removeBtn = new JButton("✕");
         removeBtn.setFont(font);
         removeBtn.addMouseListener(this);
@@ -434,11 +444,10 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
                     "Remove Code Confirmation", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
 
             if (res == JOptionPane.OK_OPTION)
-                listener.removeCode(this);
+                listener.removeCodeItem(this);
 
         });
 
-        this.add(copyBtn, copyBtnCons);
         this.add(removeBtn, removeBtnCons);
 
     }

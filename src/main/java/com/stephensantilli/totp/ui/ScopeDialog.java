@@ -23,14 +23,14 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableModel;
-import com.stephensantilli.totp.CodeListener;
+import com.stephensantilli.totp.UIListener;
 import com.stephensantilli.totp.ScopeItem;
 import com.stephensantilli.totp.ScopeOption;
 import burp.api.montoya.core.ToolType;
 
 public class ScopeDialog extends JPanel implements TableModelListener, ItemListener {
 
-    private CodeListener listener;
+    private UIListener listener;
 
     private JLabel noteLbl, prefixLbl, toolsScopeLbl, urlScopeLbl;
 
@@ -51,7 +51,7 @@ public class ScopeDialog extends JPanel implements TableModelListener, ItemListe
 
     private DefaultTableModel model;
 
-    public ScopeDialog(CodeListener listener) {
+    public ScopeDialog(UIListener listener) {
 
         this.listener = listener;
 
@@ -561,25 +561,25 @@ public class ScopeDialog extends JPanel implements TableModelListener, ItemListe
                     targetBox.setSelected(true);
                     break;
                 case SCANNER:
-                    targetBox.setSelected(true);
+                    scannerBox.setSelected(true);
                     break;
                 case REPEATER:
-                    targetBox.setSelected(true);
+                    repeaterBox.setSelected(true);
                     break;
                 case INTRUDER:
-                    targetBox.setSelected(true);
+                    intruderBox.setSelected(true);
                     break;
                 case SEQUENCER:
-                    targetBox.setSelected(true);
+                    sequencerBox.setSelected(true);
                     break;
                 case BURP_AI:
-                    targetBox.setSelected(true);
+                    aiBox.setSelected(true);
                     break;
                 case EXTENSIONS:
-                    targetBox.setSelected(true);
+                    extensionBox.setSelected(true);
                     break;
                 case PROXY:
-                    targetBox.setSelected(true);
+                    proxyBox.setSelected(true);
                     break;
                 default:
                     throw new Exception("Invalid tool in scope.");
