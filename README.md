@@ -44,7 +44,7 @@ TOTP is an extension for Burp Suite that allows you to generate and use time-bas
 6. Select the Jar file you built in Step 2 (It will be in `./build/libs/TOTP.jar`)
 7. Click "Next" to load the extension
 
-For more information, see [PortSwigger's documentation](https://portswigger.net/burp/documentation/desktop/extend-burp/extensions/installing/manual-install).
+For more information, see [Installing extensions manually](https://portswigger.net/burp/documentation/desktop/extend-burp/extensions/installing/manual-install) from PortSwigger.
 
 ## Usage
 
@@ -55,16 +55,16 @@ Navigate to the "TOTP" tab in Burp Suite. At the top, there is a form allowing y
 Give your TOTP a name! This will allow you to distinguish it from other TOTPs in the list.
 
 #### Secret
-This is where you will enter in the Base32-encoded secret of your TOTP. Typically, the secret will be in the form `A2B3 C4D5 E6F7 GHIJ KLMN OPQR STUV WXYZ`.
+This is where you will enter in the Base 32-encoded secret of your TOTP. Typically, the secret will be in the form `A2B3 C4D5 E6F7 GHIJ KLMN OPQR STUV WXYZ`. The extension uses the Base 32 encoding described in [Section 6 of RFC4648](https://datatracker.ietf.org/doc/html/rfc4648#section-6), which includes the uppercase letters A-Z and digits 2-7.
 
 #### Duration
-This is how long each TOTP lasts for, in seconds. This will almost always be `30`, but some applications may use values such as `60`.
+This is how long each TOTP lasts for, in seconds. This will almost always be 30, but some applications may use values such as `60`.
 
 #### Code Length
-This is the number of digits of the TOTP code to generate. This will almost always be `6`, returning a code in the form of `123 456`. However, some applications may use values such as `8`.
+This is the number of digits of the TOTP code to generate. This will almost always be 6, returning a code in the form of `123 456`. However, some applications may use values such as 8.
 
 #### Algorithm
-This allows you to select the hashing algorithm that the application expects. This will almost always be `SHA-1`, which uses the HMAC-SHA-1 hash function. Some applications may use `SHA-256` or `SHA-512` hashing instead.
+This allows you to select the hashing algorithm that the application expects. This will almost always be SHA-1, which uses the HMAC-SHA-1 hash function. Some applications may use SHA-256 or SHA-512 hashing instead.
 
 ### Scanning QR Codes
 QR codes can be used to automatically populate the values detailed in [Adding a code](#adding-a-code). There are two ways to use QR codes.
@@ -73,7 +73,7 @@ QR codes can be used to automatically populate the values detailed in [Adding a 
 This will scan a QR code that is on your screen. In order for QR codes to be scanned, you must have the code and Burp visible on the same monitor. Depending on your operating system, you may also have to give Burp Suite access to take a screen capture. If a QR code is successfully scanned, the encoded values will be added to their respective fields. Adjust them or simply press "Add."
 
 #### Paste QR
-This button will take an image from your clipboard and scan it for a QR code.
+This button will take an image from your clipboard and scan it for a QR code. Alternatively, if you have the encoded URI (the contents of a TOTP QR code) in the form of `otpauth://...` on your clipboard as text, the extension will use that.
 
 ### Setting your Scope
 The extension allows you to define a scope that limits which requests it will replace in. The scope that you configure in this dialog will not affect [session handling rules](#session-handling-rules).
@@ -132,14 +132,10 @@ The extension can be used with Burp's Scanner, which allows you to scan targets 
 ## Troubleshooting
 
 ### The placeholder wasn't replaced with a TOTP
-Check which mode you have enabled. Remember, if you switched modes, it will not take effect until the extension is reloaded!
-- If you are using ["Session handling rules only" mode](#mode-session-handling-rules-only), make sure that your session handling rule is enabled, has the correct scope, and that it includes the "Insert TOTP into request" action.
-- If you are using ["Monitor all requests" mode](#mode-monitor-all-requests), make sure that you enable the relevant [Replace in X](#replace-in-target) setting.
-
-For performance, the extension will match and replace all occurrences of the first TOTP that has a match in the request. It will not continue to search for matches from other TOTPs.
+[Check your scope](#setting-your-scope)! Make sure the tool that you are using is selected. If you are using a session handling rule, try using the session handling tracer.
 
 ### My placeholder gets replaced with the TOTP code in Repeater
-This is how Burp handles session handling rules. See the note in ["Session handling rules only" mode](#mode-session-handling-rules-only).
+This is how Burp handles session handling rules. If you don't want this to happen, consider not using a session rule and [configuring your scope through the extension](#setting-your-scope) instead.
 
 ## Settings
 You can find options for this extension in Burp's application settings under the "Extensions" tab.

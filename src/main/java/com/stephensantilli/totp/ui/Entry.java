@@ -558,9 +558,22 @@ public class Entry extends JPanel {
         try {
             data = clipboard.getContents(this).getTransferData(DataFlavor.imageFlavor);
         } catch (IOException e) {
-            throw new Exception("Unable to get an image from clipboard.");
+            throw new Exception("Unable to get TOTP from clipboard due to an IO Exception.");
         } catch (UnsupportedFlavorException e) {
-            throw new Exception("Unable to get an image from clipboard.");
+
+            try {
+
+                data = clipboard.getContents(this).getTransferData(DataFlavor.stringFlavor);
+
+                if (data instanceof String)
+                    return (String) data;
+                else
+                    throw new Exception("Invalid data type on clipboard.");
+
+            } catch (IOException | UnsupportedFlavorException ex) {
+                throw new Exception("No QR image or URI on clipboard.");
+            }
+
         }
 
         if (!(data instanceof Image))
