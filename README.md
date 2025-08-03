@@ -11,6 +11,7 @@ TOTP is an extension for Burp Suite that allows you to generate and use time-bas
   - [Scanning QR codes](#scanning-qr-codes)
   - [Setting your Scope](#setting-your-scope)
   - [Viewing your codes](#viewing-your-codes)
+  - [Insert into message editors](#insert-into-message-editors)
   - [Use with Scanner](#use-with-scanner)
 - [Troubleshooting](#troubleshooting)
   - [The placeholder wasn't replaced with a TOTP](#the-placeholder-wasnt-replaced-with-a-totp)
@@ -31,6 +32,7 @@ TOTP is an extension for Burp Suite that allows you to generate and use time-bas
 - Save TOTPs to your project file
 - Add TOTPs with custom durations, code lengths, and choose which hashing algorithm to use (SHA-1, SHA-256, or SHA-512)
 - Copy TOTPs to your clipboard with one click
+- Insert TOTP codes into message editors from the right-click (context) menu
 - Name each TOTP to distinguish them
 
 ## Installation
@@ -113,6 +115,9 @@ This button will copy the TOTP code (without spacing) to your clipboard.
 
 #### Remove (X)
 This button will remove the TOTP from the UI. It will also remove it from the project storage if the [Save TOTPs to project file](#save-totps-to-project-file) option is enabled.  
+
+### Insert into message editors
+Right click in any editable message editor in Burp. Under `Extensions > TOTP` you can either insert the current code for each TOTP you have saved or insert the match string placeholder you have configured.
 
 ### Use with Scanner
 The extension can be used with Burp's Scanner, which allows you to scan targets that use TOTPs for multi-factor authentication. 

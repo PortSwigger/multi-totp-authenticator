@@ -1,7 +1,6 @@
 package com.stephensantilli.totp.ui;
 
 import static com.stephensantilli.totp.TOTP.api;
-import static com.stephensantilli.totp.TOTP.logOutput;
 
 import java.awt.Color;
 import java.awt.Dimension;

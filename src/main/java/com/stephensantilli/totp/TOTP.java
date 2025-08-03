@@ -1,8 +1,14 @@
 package com.stephensantilli.totp;
 
+import java.awt.Component;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
 import javax.swing.JDialog;
 import javax.swing.JFrame;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
@@ -15,6 +21,7 @@ import com.stephensantilli.totp.ui.TOTPPane;
 import burp.api.montoya.BurpExtension;
 import burp.api.montoya.MontoyaApi;
 import burp.api.montoya.core.ByteArray;
+import burp.api.montoya.core.Range;
 import burp.api.montoya.core.ToolType;
 import burp.api.montoya.extension.Extension;
 import burp.api.montoya.extension.ExtensionUnloadingHandler;
@@ -23,7 +30,9 @@ import burp.api.montoya.http.handler.HttpRequestToBeSent;
 import burp.api.montoya.http.handler.HttpResponseReceived;
 import burp.api.montoya.http.handler.RequestToBeSentAction;
 import burp.api.montoya.http.handler.ResponseReceivedAction;
+import burp.api.montoya.http.message.HttpRequestResponse;
 import burp.api.montoya.http.message.requests.HttpRequest;
+import burp.api.montoya.http.message.responses.HttpResponse;
 import burp.api.montoya.http.sessions.ActionResult;
 import burp.api.montoya.http.sessions.SessionHandlingAction;
 import burp.api.montoya.http.sessions.SessionHandlingActionData;
@@ -31,6 +40,10 @@ import burp.api.montoya.logging.Logging;
 import burp.api.montoya.persistence.PersistedList;
 import burp.api.montoya.persistence.PersistedObject;
 import burp.api.montoya.ui.UserInterface;
+import burp.api.montoya.ui.contextmenu.ContextMenuEvent;
+import burp.api.montoya.ui.contextmenu.ContextMenuItemsProvider;
+import burp.api.montoya.ui.contextmenu.MessageEditorHttpRequestResponse;
+import burp.api.montoya.ui.contextmenu.MessageEditorHttpRequestResponse.SelectionContext;
 import burp.api.montoya.ui.settings.SettingsPanelBuilder;
 import burp.api.montoya.ui.settings.SettingsPanelPersistence;
 import burp.api.montoya.ui.settings.SettingsPanelSetting;
@@ -38,7 +51,8 @@ import burp.api.montoya.ui.settings.SettingsPanelWithData;
 import burp.api.montoya.utilities.ByteUtils;
 
 public class TOTP
-        implements BurpExtension, ExtensionUnloadingHandler, CodeListener, HttpHandler, SessionHandlingAction {
+        implements BurpExtension, ExtensionUnloadingHandler, CodeListener, HttpHandler, SessionHandlingAction,
+        ContextMenuItemsProvider {
 
     public static final int DEFAULT_DIGITS = 6, DEFAULT_DURATION = 30;
 
@@ -118,6 +132,9 @@ public class TOTP
 
         ui.registerSettingsPanel(settings);
         logOutput("Registered settings panel.", true);
+
+        ui.registerContextMenuItemsProvider(this);
+        logOutput("Registered context menu.", true);
 
         ext.registerUnloadingHandler(this);
         logOutput("Registered unloading handler.", true);
@@ -567,6 +584,118 @@ public class TOTP
 
         logOutput((includeSubdomains ? "Enabled" : "Disabled") + " include subdomains for \"" + item.getPrefix() + "!",
                 true);
+
+    }
+
+    @Override
+    public List<Component> provideMenuItems(ContextMenuEvent event) {
+
+        logOutput("Menu item provider called at event type: " + event.invocationType(), true);
+
+        switch (event.invocationType()) {
+            case INTRUDER_ATTACK_RESULTS:
+            case MESSAGE_VIEWER_RESPONSE:
+            case PROXY_HISTORY:
+            case SCANNER_RESULTS:
+            case SEARCH_RESULTS:
+            case SITE_MAP_TABLE:
+            case SITE_MAP_TREE:
+            case MESSAGE_VIEWER_REQUEST:
+            default:
+                return null;
+            case INTRUDER_PAYLOAD_POSITIONS:
+            case MESSAGE_EDITOR_REQUEST:
+            case MESSAGE_EDITOR_RESPONSE:
+            case PROXY_INTERCEPT:
+
+                JMenu codeMenu = new JMenu("Insert code"),
+                        placeholderMenu = new JMenu("Insert placeholder");
+
+                for (Code code : codes) {
+
+                    JMenuItem insertCode = new JMenuItem(code.getName());
+                    insertCode.addActionListener(l -> {
+
+                        contextMenuInsert(event, code, false);
+
+                    });
+
+                    codeMenu.add(insertCode);
+
+                    JMenuItem insertPlaceholder = new JMenuItem(code.getName());
+                    insertPlaceholder.addActionListener(l -> {
+
+                        contextMenuInsert(event, code, true);
+
+                    });
+
+                    placeholderMenu.add(insertPlaceholder);
+
+                }
+
+                return List.of(codeMenu, placeholderMenu);
+
+        }
+
+    }
+
+    private HttpRequest insertIntoRequest(HttpRequest req, String insert, int start, int end) {
+
+        ByteArray msg = req.toByteArray();
+
+        ByteArray newMsg = msg.subArray(0, start)
+                .withAppended(insert);
+
+        if (end < msg.length())
+            newMsg = newMsg.withAppended(msg.subArray(end, msg.length()));
+
+        return HttpRequest.httpRequest(newMsg).withService(req.httpService());
+
+    }
+
+    private HttpResponse insertIntoResponse(HttpResponse res, String insert, int start, int end) {
+
+        ByteArray msg = res.toByteArray();
+
+        ByteArray newMsg = msg.subArray(0, start)
+                .withAppended(insert);
+
+        if (end < msg.length())
+            newMsg = newMsg.withAppended(msg.subArray(end, msg.length()));
+
+        return HttpResponse.httpResponse(newMsg);
+
+    }
+
+    private void contextMenuInsert(ContextMenuEvent event, Code code, boolean placeholder) {
+
+        if (event.messageEditorRequestResponse().isPresent()) {
+
+            MessageEditorHttpRequestResponse editor = event.messageEditorRequestResponse().get();
+            SelectionContext context = editor.selectionContext();
+            HttpRequestResponse rr = editor.requestResponse();
+
+            int caret = editor.caretPosition();
+            int start = caret, end = caret;
+            String insert = placeholder ? code.getMatch() : code.generateCode();
+
+            Optional<Range> sel = editor.selectionOffsets();
+
+            // If user has a selection
+            if (sel.isPresent()) {
+
+                start = sel.get().startIndexInclusive();
+                end = sel.get().endIndexExclusive();
+
+            }
+
+            if (context.equals(SelectionContext.REQUEST))
+                editor.setRequest(insertIntoRequest(rr.request(), insert, start, end));
+            else if (context.equals(SelectionContext.RESPONSE))
+                editor.setResponse(insertIntoResponse(rr.response(), insert, start, end));
+
+        } else
+            logOutput("Called to insert code but there is no message editor!", true);
 
     }
 
