@@ -46,6 +46,10 @@ import com.stephensantilli.totp.Code;
 import com.stephensantilli.totp.UIListener;
 import com.stephensantilli.totp.TOTP;
 
+/**
+ * The UI element where users enter the details of a TOTP to add to their
+ * project.
+ */
 public class Entry extends JPanel {
 
     private JLabel secretLbl, digitsLbl, nameLbl, durationLbl, algoLbl;
@@ -434,19 +438,12 @@ public class Entry extends JPanel {
 
     }
 
-    public String getCrypto() {
-
-        ButtonModel bm = algoBtns.getSelection();
-
-        if (bm.equals(sha256Rad.getModel()))
-            return "HmacSHA256";
-        if (bm.equals(sha512Rad.getModel()))
-            return "HmacSHA512";
-        else
-            return "HmacSHA1";
-
-    }
-
+    /**
+     * Creates a TOTP code from the user-supplied data in the fields of this form.
+     * 
+     * @return A {@link Code} object
+     * @throws Exception If the user-entered data is invalid.
+     */
     public Code getCodeFromEntry() throws Exception {
 
         String name = nameField.getText();
@@ -479,6 +476,19 @@ public class Entry extends JPanel {
         this.durationField.setText(DEFAULT_DURATION + "");
 
         algoBtns.setSelected(sha1Rad.getModel(), true);
+
+    }
+
+    private String getCrypto() {
+
+        ButtonModel bm = algoBtns.getSelection();
+
+        if (bm.equals(sha256Rad.getModel()))
+            return "HmacSHA256";
+        if (bm.equals(sha512Rad.getModel()))
+            return "HmacSHA512";
+        else
+            return "HmacSHA1";
 
     }
 
@@ -551,6 +561,7 @@ public class Entry extends JPanel {
     }
 
     private String pasteQR() throws Exception, NotFoundException {
+
         Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 
         Object data;

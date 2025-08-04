@@ -1,5 +1,9 @@
 package com.stephensantilli.totp;
 
+/**
+ * Represents a single TOTP code. This stores all of the information needed to
+ * generate and display the code.
+ */
 public class Code {
 
     private String name, base32Secret, crypto, match;
@@ -22,6 +26,13 @@ public class Code {
 
     }
 
+    /**
+     * Checks if two codes are equal based on their name, secret, number of digits,
+     * and hashing algorithm.
+     * 
+     * @param code The code to compare to
+     * @return Whether or not the codes are equal
+     */
     public boolean equals(Code code) {
 
         return name.equals(code.getName())

@@ -30,6 +30,7 @@ import burp.api.montoya.http.handler.HttpRequestToBeSent;
 import burp.api.montoya.http.handler.HttpResponseReceived;
 import burp.api.montoya.http.handler.RequestToBeSentAction;
 import burp.api.montoya.http.handler.ResponseReceivedAction;
+import burp.api.montoya.http.message.HttpMessage;
 import burp.api.montoya.http.message.HttpRequestResponse;
 import burp.api.montoya.http.message.requests.HttpRequest;
 import burp.api.montoya.http.message.responses.HttpResponse;
@@ -50,6 +51,9 @@ import burp.api.montoya.ui.settings.SettingsPanelSetting;
 import burp.api.montoya.ui.settings.SettingsPanelWithData;
 import burp.api.montoya.utilities.ByteUtils;
 
+/**
+ * The main class for TOTP.
+ */
 public class TOTP
         implements BurpExtension, ExtensionUnloadingHandler, UIListener, HttpHandler, SessionHandlingAction,
         ContextMenuItemsProvider {
@@ -72,8 +76,17 @@ public class TOTP
             DURATION_KEY_SUFFIX = "_duration",
             ENABLED_KEY_SUFFIX = "_enabled";
 
-    public static final String INCLUDE_SUBDOMAINS_SUFFIX = "_include_subdomains",
-            ENABLED_SUFFIX = "_is_enabled";
+    /**
+     * Combined with a prefix from {@link #PREFIXES_KEY}, the key used to store
+     * whether or not this prefix has "Include subdomains?" enabled.
+     */
+    public static final String PREFIX_INCLUDE_SUBDOMAINS_SUFFIX = "_include_subdomains";
+
+    /**
+     * Combined with a prefix from {@link #PREFIXES_KEY}, the key used to store
+     * whether or not this prefix is enabled.
+     */
+    public static final String PREFIX_ENABLED_SUFFIX = "_is_enabled";
 
     public static MontoyaApi api;
 
@@ -104,12 +117,6 @@ public class TOTP
     private ScopeDialog scopeDialog;
 
     private JDialog scopeDialogWrapper;
-
-    public ArrayList<Code> getCodes() {
-
-        return codes;
-
-    }
 
     @Override
     public void initialize(MontoyaApi montoyaApi) {
@@ -154,7 +161,7 @@ public class TOTP
         logOutput("Registered session handling action.", true);
 
         if (!settings.getBoolean(PERSISTENCE_SETTING))
-            clearStorage();
+            clearCodeStorage();
 
         this.timer = new Timer(100, l -> {
 
@@ -173,189 +180,6 @@ public class TOTP
 
     }
 
-    public void clearStorage() {
-
-        logOutput("Clearing storage...", false);
-
-        PersistedObject data = api.persistence().extensionData();
-
-        PersistedList<String> names = data.getStringList(NAMES_KEY);
-
-        if (names != null) {
-
-            for (String name : names) {
-
-                data.deleteString(name + SECRET_KEY_SUFFIX);
-                data.deleteString(name + CRYPTO_KEY_SUFFIX);
-                data.deleteString(name + MATCH_KEY_SUFFIX);
-                data.deleteInteger(name + DIGITS_KEY_SUFFIX);
-                data.deleteInteger(name + DURATION_KEY_SUFFIX);
-                data.deleteBoolean(name + ENABLED_KEY_SUFFIX);
-
-            }
-
-        }
-
-        PersistedList<String> prefixes = data.getStringList(PREFIXES_KEY);
-
-        if (prefixes != null) {
-
-            for (String prefix : prefixes) {
-
-                data.deleteBoolean(prefix + INCLUDE_SUBDOMAINS_SUFFIX);
-                data.deleteBoolean(prefix + ENABLED_SUFFIX);
-
-            }
-
-        }
-
-        data.deleteStringList(NAMES_KEY);
-        data.deleteStringList(PREFIXES_KEY);
-        data.deleteInteger(SCOPE_OPTION_KEY);
-        data.deleteStringList(TOOLS_KEY);
-
-        logOutput("Storage cleared!", false);
-
-    }
-
-    /**
-     * Loads a code from the data store.
-     * 
-     * @param name The name of a saved {@link Code}.
-     * @throws Exception If the code is unable to be retrieved from the data store.
-     */
-    public void loadCode(String name) throws Exception {
-
-        PersistedObject data = api.persistence().extensionData();
-
-        String crypto, secret, regex;
-        int digits, duration;
-        boolean enabled;
-
-        secret = data.getString(name + SECRET_KEY_SUFFIX);
-        crypto = data.getString(name + CRYPTO_KEY_SUFFIX);
-        regex = data.getString(name + MATCH_KEY_SUFFIX);
-        digits = data.getInteger(name + DIGITS_KEY_SUFFIX);
-        duration = data.getInteger(name + DURATION_KEY_SUFFIX);
-        enabled = data.getBoolean(name + ENABLED_KEY_SUFFIX);
-
-        if (secret == null || crypto == null || regex == null || digits == 0 || duration == 0)
-            throw new Exception(
-                    "Unable to load \"" + name + "\" from storage due to null values."
-                            + "\nSecret=" + secret
-                            + "\nCrypto=" + crypto
-                            + "\nRegex=" + regex
-                            + "\nDigits=" + digits
-                            + "\nDuration:" + duration
-                            + "\nEnabled=" + enabled);
-
-        try {
-
-            addCode(new Code(name, secret, regex, digits, duration, crypto, enabled), false);
-
-        } catch (Exception e) {
-            throw new Exception(
-                    "Unable to load \"" + name + "\" from storage. " + e.getMessage()
-                            + "\nSecret=" + secret
-                            + "\nCrypto=" + crypto
-                            + "\nRegex=" + regex
-                            + "\nDigits=" + digits
-                            + "\nDuration:" + duration
-                            + "\nEnabled=" + enabled);
-        }
-
-    }
-
-    @Override
-    public void addCode(Code code, boolean save) throws Exception {
-
-        for (Code comp : codes) {
-
-            if (comp.getName().equals(code.getName()))
-                throw new Exception(
-                        "Unable to add \"" + code.getName() + "\". There is already a code with that name!");
-
-        }
-
-        Entry entryPane = totpPane.getEntryPane();
-        CodeTable codeTable = totpPane.getCodeTable();
-
-        // This will throw if the secret is invalid.
-        code.generateCode();
-
-        codes.add(code);
-        codeTable.addCode(code);
-        entryPane.resetEntry();
-
-        timer.start();
-
-        if (save)
-            saveCode(code);
-
-        logOutput("Added \"" + code.getName() + "\" to the project.", false);
-
-    }
-
-    @Override
-    public void removeCodeItem(CodeItem codeItem) {
-
-        CodeTable codeTable = totpPane.getCodeTable();
-
-        Code code = codeItem.getCode();
-        this.codes.remove(code);
-
-        codeTable.removeCode(codeItem);
-
-        if (codes.size() == 0)
-            timer.stop();
-
-        String name = code.getName();
-
-        if (settings.getBoolean(PERSISTENCE_SETTING)) {
-
-            PersistedObject data = api.persistence().extensionData();
-
-            data.deleteString(name + SECRET_KEY_SUFFIX);
-            data.deleteString(name + CRYPTO_KEY_SUFFIX);
-            data.deleteString(name + MATCH_KEY_SUFFIX);
-            data.deleteInteger(name + DIGITS_KEY_SUFFIX);
-            data.deleteInteger(name + DURATION_KEY_SUFFIX);
-            data.deleteBoolean(name + ENABLED_KEY_SUFFIX);
-
-            PersistedList<String> names = data.getStringList(NAMES_KEY);
-            names.remove(name);
-
-            data.setStringList(NAMES_KEY, names);
-
-        }
-
-        logOutput("Removed \"" + name + "\" from the project.", false);
-
-    }
-
-    @Override
-    public void matchUpdate(Code code, String match) {
-
-        String name = code.getName();
-
-        logOutput("Updating regex for \"" + name + "\" to \"" + match + "\"...", true);
-
-        code.setMatch(match);
-
-        if (settings.getBoolean(PERSISTENCE_SETTING)) {
-
-            PersistedObject data = api.persistence().extensionData();
-
-            data.setString(name + MATCH_KEY_SUFFIX, match);
-
-        }
-
-        totpPane.getCodeTable().highlightMatches();
-
-        logOutput("Updated regex for \"" + name + "\".", true);
-
-    }
-
     @Override
     public void extensionUnloaded() {
 
@@ -363,10 +187,23 @@ public class TOTP
 
         timer.stop();
 
+        PersistedObject data = api.persistence().extensionData();
+
         if (!settings.getBoolean(PERSISTENCE_SETTING)) {
 
-            logOutput("Saving turned off, clearing data store...", false);
-            clearStorage();
+            logOutput("Saving turned off, clearing codes from data store...", false);
+            clearCodeStorage();
+
+            // If user enables saving after adding codes...or something went really wrong.
+        } else if (data.getStringList(NAMES_KEY) == null || data.getStringList(NAMES_KEY).size() < codes.size()) {
+
+            logOutput("Mismatch with data store. Re-saving all codes.", false);
+
+            for (Code code : codes) {
+
+                saveCode(code);
+
+            }
 
         }
 
@@ -374,17 +211,6 @@ public class TOTP
             scopeDialogWrapper.dispose();
 
         logOutput("TOTP unloading finished. Goodbye!", false);
-
-    }
-
-    @Override
-    public void setEnabled(Code code, boolean enabled) {
-
-        code.setEnabled(enabled);
-
-        PersistedObject data = api.persistence().extensionData();
-
-        data.setBoolean(code.getName() + "_enabled", enabled);
 
     }
 
@@ -436,7 +262,113 @@ public class TOTP
     }
 
     @Override
-    public void addScope(ScopeItem item) throws Exception {
+    public void addCode(Code code, boolean save) throws Exception {
+
+        for (Code comp : codes) {
+
+            if (comp.getName().equals(code.getName()))
+                throw new Exception(
+                        "Unable to add \"" + code.getName() + "\". There is already a code with that name!");
+
+        }
+
+        Entry entryPane = totpPane.getEntryPane();
+        CodeTable codeTable = totpPane.getCodeTable();
+
+        // This will throw if the secret is invalid.
+        code.generateCode();
+
+        codes.add(code);
+        codeTable.addCode(code);
+        entryPane.resetEntry();
+
+        timer.start();
+
+        if (save)
+            saveCode(code);
+
+        logOutput("Added \"" + code.getName() + "\" to the project.", false);
+
+    }
+
+    @Override
+    public void removeCodeItem(CodeItem codeItem) {
+
+        CodeTable codeTable = totpPane.getCodeTable();
+
+        Code code = codeItem.getCode();
+
+        this.codes.remove(code);
+        codeTable.removeCode(codeItem);
+
+        if (codes.size() == 0)
+            timer.stop();
+
+        String name = code.getName();
+
+        PersistedObject data = api.persistence().extensionData();
+
+        data.deleteString(name + SECRET_KEY_SUFFIX);
+        data.deleteString(name + CRYPTO_KEY_SUFFIX);
+        data.deleteString(name + MATCH_KEY_SUFFIX);
+        data.deleteInteger(name + DIGITS_KEY_SUFFIX);
+        data.deleteInteger(name + DURATION_KEY_SUFFIX);
+        data.deleteBoolean(name + ENABLED_KEY_SUFFIX);
+
+        PersistedList<String> names = data.getStringList(NAMES_KEY);
+
+        if (names != null) {
+
+            names.remove(name);
+
+            data.setStringList(NAMES_KEY, names);
+
+        }
+
+        logOutput("Removed \"" + name + "\" from the project.", false);
+
+    }
+
+    @Override
+    public void matchUpdate(Code code, String match) {
+
+        String name = code.getName();
+
+        logOutput("Updating regex for \"" + name + "\" to \"" + match + "\"...", true);
+
+        code.setMatch(match);
+
+        if (settings.getBoolean(PERSISTENCE_SETTING)) {
+
+            PersistedObject data = api.persistence().extensionData();
+
+            data.setString(name + MATCH_KEY_SUFFIX, match);
+
+        }
+
+        totpPane.getCodeTable().highlightMatches();
+
+        logOutput("Updated regex for \"" + name + "\".", true);
+
+    }
+
+    @Override
+    public void setCodeEnabled(Code code, boolean enabled) {
+
+        code.setEnabled(enabled);
+
+        if (settings.getBoolean(PERSISTENCE_SETTING)) {
+
+            PersistedObject data = api.persistence().extensionData();
+
+            data.setBoolean(code.getName() + ENABLED_KEY_SUFFIX, enabled);
+
+        }
+
+    }
+
+    @Override
+    public void addScopeItem(ScopeItem item) throws Exception {
 
         scope.addItem(item);
 
@@ -452,8 +384,8 @@ public class TOTP
 
         data.setStringList(PREFIXES_KEY, prefixes);
 
-        data.setBoolean(prefix + INCLUDE_SUBDOMAINS_SUFFIX, item.getIncludeSubdomains());
-        data.setBoolean(prefix + ENABLED_SUFFIX, item.isEnabled());
+        data.setBoolean(prefix + PREFIX_INCLUDE_SUBDOMAINS_SUFFIX, item.getIncludeSubdomains());
+        data.setBoolean(prefix + PREFIX_ENABLED_SUFFIX, item.isEnabled());
 
         if (scopeDialog != null)
             scopeDialog.addScope(item);
@@ -463,20 +395,21 @@ public class TOTP
     }
 
     @Override
-    public void removeScope(int index) throws IndexOutOfBoundsException {
+    public void removeScopeItem(int index) throws IndexOutOfBoundsException {
 
         PersistedObject data = api.persistence().extensionData();
 
         PersistedList<String> prefixes = data.getStringList(PREFIXES_KEY);
 
+        // Heavily relies on the prefixes not getting mismatched
         String prefix = prefixes.get(index);
 
         prefixes.remove(prefix);
 
         data.setStringList(PREFIXES_KEY, prefixes);
 
-        data.deleteBoolean(prefix + ENABLED_SUFFIX);
-        data.deleteBoolean(prefix + INCLUDE_SUBDOMAINS_SUFFIX);
+        data.deleteBoolean(prefix + PREFIX_ENABLED_SUFFIX);
+        data.deleteBoolean(prefix + PREFIX_INCLUDE_SUBDOMAINS_SUFFIX);
 
         scope.removePrefix(index);
 
@@ -512,8 +445,7 @@ public class TOTP
 
         }
 
-        if (settings.getBoolean(PERSISTENCE_SETTING))
-            data.setStringList(TOOLS_KEY, tools);
+        data.setStringList(TOOLS_KEY, tools);
 
         logOutput("Set " + tool.toolName() + " to " + (enabled ? "enabled" : "disabled") + ".", true);
 
@@ -572,6 +504,12 @@ public class TOTP
 
         ScopeItem item = scope.getPrefixes().get(index);
 
+        PersistedObject data = api.persistence().extensionData();
+        PersistedList<String> prefixes = data.getStringList(PREFIXES_KEY);
+
+        prefixes.set(index, prefix);
+        data.setStringList(PREFIXES_KEY, prefixes);
+
         item.setPrefix(prefix);
 
         logOutput("Prefix set to \"" + item.getPrefix() + "\"!", true);
@@ -583,6 +521,9 @@ public class TOTP
 
         ScopeItem item = scope.getPrefixes().get(index);
 
+        PersistedObject data = api.persistence().extensionData();
+        data.setBoolean(item.getPrefix() + PREFIX_ENABLED_SUFFIX, enabled);
+
         item.setEnabled(enabled);
 
         logOutput((enabled ? "Enabled" : "Disabled") + " \"" + item.getPrefix() + "\"!", true);
@@ -593,6 +534,9 @@ public class TOTP
     public void setItemIncludeSubdomains(boolean includeSubdomains, int index) throws IndexOutOfBoundsException {
 
         ScopeItem item = scope.getPrefixes().get(index);
+
+        PersistedObject data = api.persistence().extensionData();
+        data.setBoolean(item.getPrefix() + PREFIX_INCLUDE_SUBDOMAINS_SUFFIX, includeSubdomains);
 
         item.setIncludeSubdomains(includeSubdomains);
 
@@ -656,6 +600,116 @@ public class TOTP
     }
 
     /**
+     * Loads a code from the data store.
+     * 
+     * @param name The name of a saved {@link Code}.
+     * @throws Exception If the code is unable to be retrieved from the data store.
+     */
+    private void loadCode(String name) throws Exception {
+
+        PersistedObject data = api.persistence().extensionData();
+
+        String crypto = null, secret = null, regex = null;
+        int digits = 0, duration = 0;
+        boolean enabled = false;
+
+        try {
+
+            secret = data.getString(name + SECRET_KEY_SUFFIX);
+            crypto = data.getString(name + CRYPTO_KEY_SUFFIX);
+            regex = data.getString(name + MATCH_KEY_SUFFIX);
+            digits = data.getInteger(name + DIGITS_KEY_SUFFIX);
+            duration = data.getInteger(name + DURATION_KEY_SUFFIX);
+            enabled = data.getBoolean(name + ENABLED_KEY_SUFFIX);
+
+            // The ints will throw if null
+            if (secret == null || crypto == null || regex == null)
+                throw new Exception("Invalid values.");
+
+            // Add code without saving it again
+            addCode(new Code(name, secret, regex, digits, duration, crypto, enabled), false);
+
+        } catch (Exception e) {
+
+            throw new Exception("Unable to load \"" + name + "\" from storage."
+                    + "\nMessage: " + e.getMessage()
+                    + "\nSecret: " + secret
+                    + "\nCrypto: " + crypto
+                    + "\nRegex: " + regex
+                    + "\nDigits: " + digits
+                    + "\nDuration: " + duration
+                    + "\nEnabled: " + enabled);
+
+        }
+
+    }
+
+    /**
+     * Clears the scope configuration and all associated data from the project
+     * storage.
+     */
+    @SuppressWarnings("unused")
+    private void clearScopeStorage() {
+
+        logOutput("Clearing scope from storage...", false);
+
+        PersistedObject data = api.persistence().extensionData();
+
+        PersistedList<String> prefixes = data.getStringList(PREFIXES_KEY);
+
+        if (prefixes != null) {
+
+            for (String prefix : prefixes) {
+
+                data.deleteBoolean(prefix + PREFIX_INCLUDE_SUBDOMAINS_SUFFIX);
+                data.deleteBoolean(prefix + PREFIX_ENABLED_SUFFIX);
+
+            }
+
+        }
+
+        data.deleteStringList(PREFIXES_KEY);
+        data.deleteInteger(SCOPE_OPTION_KEY);
+        data.deleteStringList(TOOLS_KEY);
+
+        logOutput("Scope cleared from storage!", false);
+
+    }
+
+    /**
+     * Clears the secrets and all associated data of all TOTPs in the project
+     * storage.
+     */
+    private void clearCodeStorage() {
+
+        logOutput("Clearing codes from storage...", false);
+
+        PersistedObject data = api.persistence().extensionData();
+
+        PersistedList<String> names = data.getStringList(NAMES_KEY);
+
+        if (names != null) {
+
+            for (String name : names) {
+
+                data.deleteString(name + SECRET_KEY_SUFFIX);
+                data.deleteString(name + CRYPTO_KEY_SUFFIX);
+                data.deleteString(name + MATCH_KEY_SUFFIX);
+                data.deleteInteger(name + DIGITS_KEY_SUFFIX);
+                data.deleteInteger(name + DURATION_KEY_SUFFIX);
+                data.deleteBoolean(name + ENABLED_KEY_SUFFIX);
+
+            }
+
+        }
+
+        data.deleteStringList(NAMES_KEY);
+
+        logOutput("Codes cleared from storage!", false);
+
+    }
+
+    /**
      * Saves a code to the data store if persistence is enabled.
      * 
      * @param code The code that should be saved.
@@ -690,34 +744,50 @@ public class TOTP
 
     }
 
-    private HttpRequest insertIntoRequest(HttpRequest req, String insert, int start, int end) {
+    /**
+     * Inserts a string into an {@link HttpRequest} or {@link HttpResponse},
+     * overwriting only the defined range. If {@code start == end}, {@code insert}
+     * will not overwrite anything.
+     * 
+     * @param msg    The message to modify
+     * @param insert The string that will be inserted
+     * @param start  The inclusive start of the range to overwrite
+     * @param end    The exclusive end of the range to overwrite
+     * @return A new {@link HttpRequest} or {@link HttpResponse} with the insertion
+     *         made.
+     * @throws Exception If {@code msg} is not
+     */
+    private HttpMessage insertIntoMessage(HttpMessage msg, String insert, int start, int end) throws Exception {
 
-        ByteArray msg = req.toByteArray();
+        ByteArray bytes = msg.toByteArray();
 
-        ByteArray newMsg = msg.subArray(0, start)
+        ByteArray newMsg = bytes.subArray(0, start)
                 .withAppended(insert);
 
-        if (end < msg.length())
-            newMsg = newMsg.withAppended(msg.subArray(end, msg.length()));
+        if (end < bytes.length())
+            newMsg = newMsg.withAppended(bytes.subArray(end, bytes.length()));
 
-        return HttpRequest.httpRequest(newMsg).withService(req.httpService());
+        if (msg instanceof HttpRequest)
+            return HttpRequest.httpRequest(newMsg).withService(((HttpRequest) msg).httpService());
+        else if (msg instanceof HttpResponse)
+            return HttpResponse.httpResponse(newMsg);
+        else
+            throw new Exception("You can only insert into a request or response!");
 
     }
 
-    private HttpResponse insertIntoResponse(HttpResponse res, String insert, int start, int end) {
-
-        ByteArray msg = res.toByteArray();
-
-        ByteArray newMsg = msg.subArray(0, start)
-                .withAppended(insert);
-
-        if (end < msg.length())
-            newMsg = newMsg.withAppended(msg.subArray(end, msg.length()));
-
-        return HttpResponse.httpResponse(newMsg);
-
-    }
-
+    /**
+     * Handles a context menu insertion action from the user. Inserts the given TOTP
+     * code or match string at the caret position of the user in the message editor.
+     * If there is a selection, the selection is overwritten with the code or match
+     * string.
+     * 
+     * @param event       The {@link ContextMenuEvent} generated
+     * @param code        The {@link Code} selected
+     * @param placeholder If {@code false}, {@link Code#generateCode()} will be
+     *                    inserted. If {@code true}, {@link Code#getMatch()} will be
+     *                    inserted.
+     */
     private void contextMenuInsert(ContextMenuEvent event, Code code, boolean placeholder) {
 
         if (event.messageEditorRequestResponse().isPresent()) {
@@ -740,29 +810,40 @@ public class TOTP
 
             }
 
-            if (context.equals(SelectionContext.REQUEST))
-                editor.setRequest(insertIntoRequest(rr.request(), insert, start, end));
-            else if (context.equals(SelectionContext.RESPONSE))
-                editor.setResponse(insertIntoResponse(rr.response(), insert, start, end));
+            try {
+
+                if (context.equals(SelectionContext.REQUEST))
+                    editor.setRequest((HttpRequest) insertIntoMessage(rr.request(), insert, start, end));
+                else if (context.equals(SelectionContext.RESPONSE))
+                    editor.setResponse((HttpResponse) insertIntoMessage(rr.response(), insert, start, end));
+
+            } catch (Exception e) {
+
+                logError(e.getMessage(), false);
+
+            }
 
         } else
             logOutput("Called to insert code but there is no message editor!", true);
 
     }
 
+    /**
+     * Loads in the scope the user has saved to the project file. If there is no
+     * pre-existing saved list of tools, the default tools will be used.
+     */
     private void loadScope() {
-
-        if (!settings.getBoolean(PERSISTENCE_SETTING))
-            return;
 
         this.scope = new Scope();
 
-        logOutput("Loading saved scope...", true);
+        logOutput("Loading saved scope...", false);
 
         PersistedObject data = api.persistence().extensionData();
 
         try {
 
+            // If there isn't a user-configured option, ALL_URLS is already set by default.
+            // No need to store it until the user makes a change.
             if (data.getInteger(SCOPE_OPTION_KEY) != null) {
 
                 ScopeOption suiteScope = ScopeOption.valueOf(data.getInteger(SCOPE_OPTION_KEY));
@@ -784,16 +865,16 @@ public class TOTP
 
             for (String item : prefixes) {
 
-                logOutput("Loading prefix, \"" + item + "\"...", false);
+                logOutput("Loading prefix, \"" + item + "\"...", true);
 
                 try {
 
-                    boolean includeSubdomains = data.getBoolean(item + INCLUDE_SUBDOMAINS_SUFFIX);
-                    boolean enabled = data.getBoolean(item + ENABLED_SUFFIX);
+                    boolean includeSubdomains = data.getBoolean(item + PREFIX_INCLUDE_SUBDOMAINS_SUFFIX);
+                    boolean enabled = data.getBoolean(item + PREFIX_ENABLED_SUFFIX);
 
                     scope.addItem(new ScopeItem(item, includeSubdomains, enabled));
 
-                    logOutput("Added prefix, \"" + item + "\".", false);
+                    logOutput("Loaded prefix, \"" + item + "\".", true);
 
                 } catch (Exception e) {
 
@@ -807,9 +888,21 @@ public class TOTP
 
         PersistedList<String> tools = data.getStringList(TOOLS_KEY);
 
-        if (tools == null)
-            data.setStringList(TOOLS_KEY, PersistedList.persistedStringList());
-        else {
+        if (tools == null) {
+
+            tools = PersistedList.persistedStringList();
+
+            ArrayList<ToolType> defaultTools = new ArrayList<>();
+            defaultTools.add(ToolType.TARGET);
+            defaultTools.add(ToolType.SCANNER);
+            defaultTools.add(ToolType.REPEATER);
+            defaultTools.add(ToolType.INTRUDER);
+
+            scope.setTools(defaultTools);
+
+            data.setStringList(TOOLS_KEY, tools);
+
+        } else {
 
             for (String item : tools) {
 
@@ -833,10 +926,14 @@ public class TOTP
 
         }
 
-        logOutput("Saved scope loaded!", true);
+        logOutput("Saved scope loaded!", false);
 
     }
 
+    /**
+     * Initializes the codes that a user has saved to the project file, if
+     * persistence is enabled.
+     */
     private void loadCodes() {
 
         if (!settings.getBoolean(PERSISTENCE_SETTING))
@@ -851,6 +948,7 @@ public class TOTP
         if (codeNames == null) {
 
             logOutput("No saved codes to load!", false);
+            data.setStringList(NAMES_KEY, PersistedList.persistedStringList());
 
             return;
 
@@ -884,6 +982,16 @@ public class TOTP
 
     }
 
+    /**
+     * Takes a request and checks for matches to {@link Code#getMatch()} against all
+     * codes in {@link #codes}. All occurrances of the match string of the first
+     * code to have a match will be replaced with {@link Code#generateCode()}. Other
+     * codes that also have matches will not be replaced.
+     * 
+     * @param req The {@link HttpRequest} to search for matches in
+     * @return A new {@link HttpRequest} with matches replaced, or {@code null} if
+     *         none were found.
+     */
     private HttpRequest matchAndReplace(HttpRequest req) {
 
         logOutput("Called to replace in request " + req.method() + " " + req.pathWithoutQuery() + "...", true);

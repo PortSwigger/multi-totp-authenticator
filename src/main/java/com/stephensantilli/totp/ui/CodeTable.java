@@ -8,6 +8,11 @@ import javax.swing.JPanel;
 import com.stephensantilli.totp.Code;
 import com.stephensantilli.totp.UIListener;
 
+/**
+ * The UI element that displays a "table" of TOTP codes the user has added.
+ * 
+ * @see CodeItem
+ */
 public class CodeTable extends JPanel {
 
     private ArrayList<CodeItem> codeItems;
@@ -24,6 +29,12 @@ public class CodeTable extends JPanel {
 
     }
 
+    /**
+     * Updates the TOTP and progress bar of each {@link CodeItem}. This does not
+     * highlight any matching regex strings.
+     * 
+     * @see #highlightMatches()
+     */
     public void updateCodes() {
 
         for (CodeItem codeItem : codeItems) {
@@ -32,6 +43,11 @@ public class CodeTable extends JPanel {
 
     }
 
+    /**
+     * Adds a {@link CodeItem} to the table. Revalidates and repaints the panel.
+     * 
+     * @param code The item to add.
+     */
     public void addCode(Code code) {
 
         CodeItem newCode = new CodeItem(code, listener);
@@ -44,6 +60,12 @@ public class CodeTable extends JPanel {
 
     }
 
+    /**
+     * Removes a {@link CodeItem} from the table. Revalidates and repaints the
+     * panel.
+     * 
+     * @param codeItem The item to remove
+     */
     public void removeCode(CodeItem codeItem) {
 
         remove(codeItem);
@@ -54,6 +76,10 @@ public class CodeTable extends JPanel {
 
     }
 
+    /**
+     * Checks the {@link Code#getMatch()} of each {@link CodeItem} for duplicates
+     * and highlights any offending match strings.
+     */
     public void highlightMatches() {
 
         ArrayList<CodeItem> items = new ArrayList<>(codeItems);

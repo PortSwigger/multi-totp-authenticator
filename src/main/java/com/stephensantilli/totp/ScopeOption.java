@@ -8,8 +8,21 @@ package com.stephensantilli.totp;
  */
 public enum ScopeOption {
 
+    /**
+     * Include all URLs in the extension's scope.
+     */
     ALL_URLS(0),
+
+    /**
+     * Use the scope defined in the Target tab.
+     */
     SUITE_SCOPE(1),
+
+    /**
+     * Use the user-defined extension scope.
+     * 
+     * @see com.stephensantilli.totp.ui.ScopeDialog
+     */
     CUSTOM_SCOPE(2);
 
     public static ScopeOption valueOf(int value) throws Exception {

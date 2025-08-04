@@ -18,6 +18,8 @@ import javax.crypto.spec.SecretKeySpec;
 import java.math.BigInteger;
 
 /**
+ * Used to generate the valid TOTP code at any given time.
+ * 
  * This code is a modified version of the reference implementation from RFC
  * 6238.
  * 

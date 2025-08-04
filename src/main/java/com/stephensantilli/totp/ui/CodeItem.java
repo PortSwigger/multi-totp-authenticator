@@ -35,6 +35,12 @@ import com.stephensantilli.totp.UIListener;
 
 import burp.api.montoya.ui.Theme;
 
+/**
+ * The UI element responsible for displaying a single TOTP code that a user has
+ * added.
+ * 
+ * @see CodeTable
+ */
 public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
     private Code code;
@@ -368,7 +374,7 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
             boolean enabled = enabledBox.isSelected();
 
-            listener.setEnabled(code, enabled);
+            listener.setCodeEnabled(code, enabled);
             matchField.setEnabled(enabled);
             matchLbl.setEnabled(enabled);
 

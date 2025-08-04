@@ -84,7 +84,10 @@ The extension allows you to define a scope that limits which requests it will re
 The extension will only monitor requests from the tools you enable here.
 
 #### URL scope
-You may either choose to include all URLs, use the suite scope, or define a custom scope. The custom scope is configured by defining prefixes, such that the extension will filter all requests with URLs that start with your prefix.
+You may either choose to include all URLs, use the suite scope, or define a custom scope. The custom scope is configured by defining prefixes, such that the extension will filter all requests with URLs that start with your prefix. Scopes that start with `https://` will only allow HTTPS requests to be in scope. However, scopes that start with `http://` work for any protocol at the given URL.
+
+##### Include subdomains?
+Enabling this will allow subdomains of that prefix to be included in the scope. For example, `github.com` with "Include subdomains?" enabled will also match `example.github.com`.
 
 ### Session handling rules
 You can also invoke the extension with a session handling rule if you prefer to control the scope that way. When configuring a rule, click "Add" > "Invoke a Burp extension" then select "Insert TOTP into request." See [Session handling rule editor](https://portswigger.net/burp/documentation/desktop/settings/sessions/session-handling-rules) to learn more.
@@ -105,7 +108,7 @@ The current, valid TOTP code will be displayed with a space in the middle for re
 A progress bar will display next to the code indicating the amount of time remaining before the code will be invalid. It will count down each second from the number of seconds you configured in the [duration](#duration).
 
 #### Match Field
-Here, you can enter the string that you want the extension to search for in requests. If you would like to use regex, see [Use regex when matching TOTPs](#use-regex-when-matching-totps). When the extension handles a request, it will replace all occurrences of this match string with your TOTP. It will also update the Content-Length header of the request, if appropriate.
+Here, you can enter the string that you want the extension to search for in requests. If you would like to use regex, see [Use regex when matching TOTPs](#use-regex-when-matching-totps). When the extension handles an [in-scope request](#setting-your-scope), it will replace all occurrences of this match string with your TOTP. It will also update the Content-Length header of the request, if appropriate. 
 
 #### Replace in requests?
 This checkbox allows you to quickly enable or disable replacing for that specific TOTP. When disabled, the match string cannot be edited and the extension will not replace occurrences of the match in requests. If you have a lot of TOTPs saved, you may find better performance by disabling matching of TOTPs that you are not using.
@@ -141,7 +144,7 @@ This is how Burp handles session handling rules. If you don't want this to happe
 You can find options for this extension in Burp's application settings under the "Extensions" tab.
 
 ### Save TOTPs to project file
-Enabling this will store the settings for each TOTP you add in the storage of your project file. This means TOTPs persist, even when you restart Burp Suite.
+Enabling this will store the settings for each TOTP you add in the storage of your project file. This means TOTPs persist, even when you restart Burp Suite. The [scope you define](#setting-your-scope) will always be saved to the project file regardless of this setting.
 
 **Security Note**:  This setting stores the secrets of your TOTPs in your `.burp` project file. If you are concerned about the security of this, consider disabling this option and use care when sharing your project file.
 

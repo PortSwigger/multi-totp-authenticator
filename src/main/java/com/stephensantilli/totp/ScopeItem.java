@@ -6,16 +6,34 @@ package com.stephensantilli.totp;
  */
 public class ScopeItem {
 
+    /**
+     * The prefix to match the URLs of requests to.
+     */
     private String prefix;
+
     private boolean includeSubdomains, enabled;
 
     public ScopeItem(String prefix, boolean includeSubdomains, boolean enabled) {
+
         this.enabled = true;
         this.prefix = prefix;
         this.includeSubdomains = includeSubdomains;
+
     }
 
+    /**
+     * Returns whether or not the supplied URL is within this item's scope. If this
+     * item's prefix starts with {@code https://}, {@code url} must use HTTPS too.
+     * {@code http://} is dropped and ignored.
+     * 
+     * @param url The URL to check
+     * @return Whether or not the URL is in this item's scope.
+     */
     public boolean isInScope(String url) {
+
+        if (prefix.toLowerCase().startsWith("https://")
+                && !url.toLowerCase().startsWith("https://"))
+            return false;
 
         String base = this.prefix.toLowerCase().replaceFirst("^https?://", "");
         String test = url.toLowerCase().replaceFirst("^https?://", "");

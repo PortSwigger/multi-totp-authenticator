@@ -3,6 +3,9 @@ package com.stephensantilli.totp;
 import com.stephensantilli.totp.ui.CodeItem;
 import burp.api.montoya.core.ToolType;
 
+/**
+ * Provides methods for the UI to call back to the main {@link TOTP} class.
+ */
 public interface UIListener {
 
     /**
@@ -42,7 +45,7 @@ public interface UIListener {
      * @param code    The code to enable or disable matching for
      * @param enabled Whether or not matching is enabled or disabled
      */
-    public void setEnabled(Code code, boolean enabled);
+    public void setCodeEnabled(Code code, boolean enabled);
 
     /**
      * Adds an item to the scope of the extension in this project. If persistence is
@@ -51,7 +54,7 @@ public interface UIListener {
      * @param item The item to add
      * @throws Exception If there is already a scope item with the same prefix
      */
-    public void addScope(ScopeItem item) throws Exception;
+    public void addScopeItem(ScopeItem item) throws Exception;
 
     /**
      * Removes an item from the scope of the extension in this project. If
@@ -62,7 +65,7 @@ public interface UIListener {
      * @throws IndexOutOfBoundsException If the provided index is not in the list of
      *                                   scope items.
      */
-    public void removeScope(int index) throws IndexOutOfBoundsException;
+    public void removeScopeItem(int index) throws IndexOutOfBoundsException;
 
     /**
      * Sets whether a tool is included in the extension's scope. If persistence is

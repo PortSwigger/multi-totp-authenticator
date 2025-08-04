@@ -6,6 +6,9 @@ import javax.swing.ScrollPaneConstants;
 
 import com.stephensantilli.totp.UIListener;
 
+/**
+ * The parent UI element for the extension's Burp Suite tab.
+ */
 public class TOTPPane extends JSplitPane {
 
     private Entry entryPane;
@@ -34,7 +37,7 @@ public class TOTPPane extends JSplitPane {
     public Entry getEntryPane() {
 
         return entryPane;
-        
+
     }
 
     public CodeTable getCodeTable() {

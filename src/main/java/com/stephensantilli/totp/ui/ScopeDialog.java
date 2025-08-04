@@ -28,6 +28,10 @@ import com.stephensantilli.totp.ScopeItem;
 import com.stephensantilli.totp.ScopeOption;
 import burp.api.montoya.core.ToolType;
 
+/**
+ * The dialog a user uses to configure the scope of requests the extension will
+ * listen to.
+ */
 public class ScopeDialog extends JPanel implements TableModelListener, ItemListener {
 
     private UIListener listener;
@@ -385,7 +389,7 @@ public class ScopeDialog extends JPanel implements TableModelListener, ItemListe
 
             try {
 
-                listener.addScope(new ScopeItem(prefixField.getText(), includeSubdomainsBox.isSelected(), true));
+                listener.addScopeItem(new ScopeItem(prefixField.getText(), includeSubdomainsBox.isSelected(), true));
 
             } catch (Exception e) {
 
@@ -474,7 +478,7 @@ public class ScopeDialog extends JPanel implements TableModelListener, ItemListe
 
                 try {
 
-                    listener.removeScope(sel);
+                    listener.removeScopeItem(sel);
 
                 } catch (Exception e) {
 
@@ -739,9 +743,7 @@ public class ScopeDialog extends JPanel implements TableModelListener, ItemListe
     private void setScopeOption(ScopeOption scopeOption) {
 
         switch (scopeOption) {
-            case ALL_URLS:
-                allScopeRad.setSelected(true);
-                break;
+
             case CUSTOM_SCOPE:
                 customScopeRad.setSelected(true);
                 break;
@@ -749,6 +751,7 @@ public class ScopeDialog extends JPanel implements TableModelListener, ItemListe
                 suiteScopeRad.setSelected(true);
                 break;
             default:
+                allScopeRad.setSelected(true);
                 break;
 
         }
