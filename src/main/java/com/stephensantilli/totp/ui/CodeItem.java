@@ -251,6 +251,7 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
         copyCodeIcon.setIconColor(color);
         copySecretIcon.setIconColor(color);
+        copySuccessIcon.setIconColor(color);
         removeIcon.setIconColor(color);
 
         setRegexValid(regexValid);
