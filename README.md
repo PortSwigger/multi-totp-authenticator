@@ -158,3 +158,4 @@ This option enables additional logging for debugging purposes. This can affect p
 - TOTPs are generated using code from [RFC 6238 Appendix A](https://datatracker.ietf.org/doc/html/rfc6238#appendix-A) by Johan Rydell, published under the IETF Trust's Revised BSD License.
 - QR code scanning is done using the [ZXing](https://github.com/zxing/zxing) library, which is licensed under the [Apache License v2.0](http://www.apache.org/licenses/LICENSE-2.0.html).
 - There is no official standard for the OTP Auth URI format (`otpauth://`.) However, this extension follows [this draft specification by I. Y. Eroglu](https://linuxgemini.github.io/otpauth-spec-draft/).
+- This extension uses the [Templarian/MaterialDesign](https://github.com/Templarian/MaterialDesign) icon pack with [kordamp/ikonli](https://github.com/kordamp/ikonli) for icons. 
