@@ -1,11 +1,13 @@
 package com.stephensantilli.totp.ui;
 
 import static com.stephensantilli.totp.TOTP.api;
+import static com.stephensantilli.totp.TOTP.logOutput;
 
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
+import java.awt.Graphics;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -30,6 +32,12 @@ import javax.swing.Timer;
 import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
+
+import org.kordamp.ikonli.materialdesign2.MaterialDesignC;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignK;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignS;
+import org.kordamp.ikonli.swing.FontIcon;
+
 import com.stephensantilli.totp.Code;
 import com.stephensantilli.totp.UIListener;
 
@@ -47,7 +55,7 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
     private JLabel nameLbl, algoLbl, codeLbl, matchLbl;
 
-    private JButton copyBtn, removeBtn;
+    private JButton copyCodeBtn, copySecretBtn, removeBtn;
 
     private JTextField matchField;
 
@@ -61,10 +69,15 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
     private Font font;
 
+    private FontIcon copySuccessIcon, copyCodeIcon, copySecretIcon, removeIcon, algoIcon;
+
+    private boolean darkMode, regexValid;
+
     public CodeItem(Code code, UIListener listener) {
 
         this.code = code;
         this.listener = listener;
+        this.regexValid = false;
 
         setLayout(new GridBagLayout());
 
@@ -82,7 +95,9 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
         FontMetrics metrics = getFontMetrics(font);
 
-        // TODO Things get weird if this panel isn't given enough height.
+        this.darkMode = api.userInterface().currentTheme() == Theme.DARK;
+
+        // Things get weird if this panel isn't given enough height.
         // At a high enough font size even this isn't enough.
         int maxHeight = metrics.getHeight() + 215;
 
@@ -90,7 +105,7 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         setMaximumSize(new Dimension(Integer.MAX_VALUE, maxHeight));
         setPreferredSize(new Dimension(getWidth(), maxHeight));
 
-        codeLbl.setText(formatCode(code.generateCode()));
+        updateCode();
 
     }
 
@@ -133,6 +148,8 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
     public void setRegexValid(boolean b) {
 
+        this.regexValid = b;
+
         boolean darkMode = api.userInterface().currentTheme() == Theme.DARK;
         Color normal = darkMode ? new Color(0, 0, 0, 0) : Color.LIGHT_GRAY;
 
@@ -158,7 +175,7 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
     public void mouseEntered(MouseEvent e) {
 
         boolean darkMode = api.userInterface().currentTheme() == Theme.DARK;
-        setBackground(darkMode ? Color.DARK_GRAY : new Color(240, 240, 240, 250));
+        setBackground(darkMode ? new Color(57, 57, 57, 250) : new Color(240, 240, 240, 250));
 
     }
 
@@ -195,7 +212,6 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
     }
 
     public UIListener getListener() {
-
         return listener;
     }
 
@@ -224,6 +240,23 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
     }
 
+    @Override
+    protected void paintComponent(Graphics g) {
+
+        super.paintComponent(g);
+
+        darkMode = api.userInterface().currentTheme() == Theme.DARK;
+
+        Color color = darkMode ? Color.WHITE : Color.BLACK;
+
+        copyCodeIcon.setIconColor(color);
+        copySecretIcon.setIconColor(color);
+        removeIcon.setIconColor(color);
+
+        setRegexValid(regexValid);
+
+    }
+
     private void createCodeDisplay() {
 
         this.nameLbl = new JLabel("XXXXXXXXXXXXXXXXXXXX");
@@ -244,19 +277,28 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         nameLblCons.fill = GridBagConstraints.BOTH;
         nameLblCons.anchor = GridBagConstraints.WEST;
 
+        this.algoIcon = FontIcon.of(MaterialDesignS.SHIELD_KEY);
+
+        Color algoColor = new Color(100, 100, 100);
+
         this.algoLbl = new JLabel(formatCrypto(code.getCrypto()));
         algoLbl.setFont(font.deriveFont(Font.BOLD));
-        algoLbl.setForeground(new Color(100, 100, 100));
+        algoLbl.setForeground(algoColor);
         algoLbl.addMouseListener(this);
         algoLbl.setToolTipText("Hashing algorithm");
         algoLbl.setHorizontalAlignment(JLabel.RIGHT);
 
+        algoLbl.setIcon(algoIcon);
+
+        algoIcon.setIconColor(algoColor);
+        algoIcon.setIconSize(font.getSize());
+
         int inset = insets.top;
 
         GridBagConstraints algoLblCons = new GridBagConstraints();
-        algoLblCons.gridx = 2;
+        algoLblCons.gridx = 3;
         algoLblCons.gridy = 0;
-        algoLblCons.weightx = .25;
+        algoLblCons.weightx = 0;
         algoLblCons.weighty = .5;
         algoLblCons.gridheight = 1;
         algoLblCons.gridwidth = 1;
@@ -386,57 +428,118 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
     private void createButtons() {
 
-        this.copyBtn = new JButton("Copy Code");
-        copyBtn.setFont(font);
-        copyBtn.addMouseListener(this);
-        copyBtn.setToolTipText("Copy TOTP to clipboard");
-        copyBtn.setPreferredSize(copyBtn.getPreferredSize());
+        this.copySuccessIcon = FontIcon.of(MaterialDesignC.CLIPBOARD_CHECK);
+        copySuccessIcon.setIconColor(darkMode ? Color.WHITE : Color.BLACK);
+        copySuccessIcon.setIconSize(font.getSize());
 
-        GridBagConstraints copyBtnCons = new GridBagConstraints();
-        copyBtnCons.gridx = 2;
-        copyBtnCons.gridy = 1;
-        copyBtnCons.weightx = .25;
-        copyBtnCons.weighty = .5;
-        copyBtnCons.gridheight = 1;
-        copyBtnCons.gridwidth = 1;
-        copyBtnCons.ipadx = 0;
-        copyBtnCons.ipady = 10;
-        copyBtnCons.insets = insets;
-        copyBtnCons.fill = GridBagConstraints.BOTH;
-        copyBtnCons.anchor = GridBagConstraints.CENTER;
+        this.copyCodeIcon = FontIcon.of(MaterialDesignS.SHIELD_LOCK);
+        copyCodeIcon.setIconColor(darkMode ? Color.WHITE : Color.BLACK);
+        copyCodeIcon.setIconSize(font.getSize());
 
-        Timer delay = new Timer(200, m -> {
+        this.copyCodeBtn = new JButton();
+        copyCodeBtn.setIcon(copyCodeIcon);
+        copyCodeBtn.setFont(font);
+        copyCodeBtn.addMouseListener(this);
+        copyCodeBtn.setToolTipText("Copy code to clipboard");
 
-            copyBtn.setText("Copy Code");
+        GridBagConstraints copyCodeBtnCons = new GridBagConstraints();
+        copyCodeBtnCons.gridx = 2;
+        copyCodeBtnCons.gridy = 1;
+        copyCodeBtnCons.weightx = .20;
+        copyCodeBtnCons.weighty = .5;
+        copyCodeBtnCons.gridheight = 1;
+        copyCodeBtnCons.gridwidth = 1;
+        copyCodeBtnCons.ipadx = 0;
+        copyCodeBtnCons.ipady = 10;
+        copyCodeBtnCons.insets = insets;
+        copyCodeBtnCons.fill = GridBagConstraints.BOTH;
+        copyCodeBtnCons.anchor = GridBagConstraints.CENTER;
+
+        Timer copyCodeDelay = new Timer(200, m -> {
+
+            copyCodeBtn.setIcon(copyCodeIcon);
 
         });
 
-        delay.setRepeats(false);
+        copyCodeDelay.setRepeats(false);
 
-        copyBtn.addActionListener(l -> {
+        copyCodeBtn.addActionListener(l -> {
 
             Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
             clipboard.setContents(new StringSelection(code.generateCode()), null);
 
-            copyBtn.setText("✓");
+            copyCodeBtn.setIcon(copySuccessIcon);
 
-            delay.restart();
+            // TODO: Remove
+            logOutput(matchField.getLocationOnScreen() + "", true);
+
+            copyCodeDelay.restart();
 
         });
 
-        this.add(copyBtn, copyBtnCons);
+        this.add(copyCodeBtn, copyCodeBtnCons);
 
-        this.removeBtn = new JButton("✕");
+        this.copySecretIcon = FontIcon.of(MaterialDesignK.KEY);
+        copySecretIcon.setIconColor(darkMode ? Color.WHITE : Color.BLACK);
+        copySecretIcon.setIconSize(font.getSize());
+
+        this.copySecretBtn = new JButton();
+        copySecretBtn.setIcon(copySecretIcon);
+        copySecretBtn.setFont(font);
+        copySecretBtn.addMouseListener(this);
+        copySecretBtn.setToolTipText("Copy secret to clipboard");
+
+        GridBagConstraints copySecretBtnCons = new GridBagConstraints();
+        copySecretBtnCons.gridx = 3;
+        copySecretBtnCons.gridy = 1;
+        copySecretBtnCons.weightx = .1;
+        copySecretBtnCons.weighty = .5;
+        copySecretBtnCons.gridheight = 1;
+        copySecretBtnCons.gridwidth = 1;
+        copySecretBtnCons.ipadx = 0;
+        copySecretBtnCons.ipady = 10;
+        copySecretBtnCons.insets = insets;
+        copySecretBtnCons.fill = GridBagConstraints.BOTH;
+        copySecretBtnCons.anchor = GridBagConstraints.CENTER;
+
+        Timer copySecretDelay = new Timer(200, m -> {
+
+            copySecretBtn.setIcon(copySecretIcon);
+
+        });
+
+        copySecretDelay.setRepeats(false);
+
+        copySecretBtn.addActionListener(l -> {
+
+            Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+            clipboard.setContents(new StringSelection(code.getUri()), null);
+
+            copySecretBtn.setIcon(copySuccessIcon);
+
+            copySecretDelay.restart();
+
+        });
+
+        this.add(copySecretBtn, copySecretBtnCons);
+
+        this.removeBtn = new JButton();
         removeBtn.setFont(font);
         removeBtn.addMouseListener(this);
+
+        this.removeIcon = FontIcon.of(MaterialDesignC.CLOSE);
+        removeIcon.setIconColor(darkMode ? Color.WHITE : Color.BLACK);
+        removeIcon.setIconSize(font.getSize());
+
+        removeBtn.setIcon(removeIcon);
 
         GridBagConstraints removeBtnCons = new GridBagConstraints();
         removeBtnCons.gridx = 2;
         removeBtnCons.gridy = 2;
-        removeBtnCons.weightx = .25;
+        removeBtnCons.weightx = 0;
         removeBtnCons.weighty = .5;
         removeBtnCons.gridheight = 1;
-        removeBtnCons.gridwidth = 1;
+        removeBtnCons.gridwidth = 2;
         removeBtnCons.insets = insets;
         removeBtnCons.ipadx = 0;
         removeBtnCons.ipady = 0;

@@ -119,4 +119,55 @@ public class Code {
         this.enabled = enabled;
     }
 
+    /**
+     * Gets this code's {@code otpauth://} URI according to this draft
+     * specification: {@link https://linuxgemini.github.io/otpauth-spec-draft/}. If
+     * there is a {@code -} in the middle of this code's name, the content on the
+     * left side of the dash will be used as the code's {@code label} and the right
+     * side will be used as the code's {@code issuer}. This is the URI that is
+     * encoded into QR codes.
+     * 
+     * @return An {@code otpauth://} URI representing this TOTP
+     */
+    public String getUri() {
+
+        String uri = "otpauth://totp/";
+
+        String label = name,
+                issuer = null;
+
+        int separator = label.indexOf("-");
+
+        if (separator > -1 && separator + 1 < label.length()) {
+
+            issuer = label.substring(separator + 1).trim();
+            label = label.substring(0, separator);
+
+        }
+
+        String secret = this.base32Secret.replaceAll(" ", "").toUpperCase().trim();
+        String algorithm = this.crypto;
+        switch (algorithm) {
+            case "HmacSHA1":
+                algorithm = "SHA1";
+                break;
+            case "HmacSHA256":
+                algorithm = "SHA256";
+                break;
+            case "HmacSHA512":
+                algorithm = "SHA512";
+                break;
+        }
+
+        uri += label
+                + "?secret=" + secret
+                + "&algorithm=" + algorithm
+                + "&digits=" + digits
+                + "&period=" + duration
+                + (issuer != null ? "&issuer=" + issuer : "");
+
+        return uri;
+
+    }
+
 }

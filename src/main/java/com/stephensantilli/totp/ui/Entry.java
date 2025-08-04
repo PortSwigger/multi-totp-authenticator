@@ -7,6 +7,7 @@ import static com.stephensantilli.totp.TOTP.logOutput;
 
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -35,6 +36,12 @@ import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
+import org.kordamp.ikonli.materialdesign2.MaterialDesignC;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignP;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignQ;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignT;
+import org.kordamp.ikonli.swing.FontIcon;
+
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.BinaryBitmap;
 import com.google.zxing.DecodeHintType;
@@ -44,6 +51,9 @@ import com.google.zxing.RGBLuminanceSource;
 import com.google.zxing.common.HybridBinarizer;
 import com.stephensantilli.totp.Code;
 import com.stephensantilli.totp.UIListener;
+
+import burp.api.montoya.ui.Theme;
+
 import com.stephensantilli.totp.TOTP;
 
 /**
@@ -62,6 +72,10 @@ public class Entry extends JPanel {
 
     private JButton addBtn, scanBtn, pasteBtn, scopeBtn;
 
+    private FontIcon addIcon, scanIcon, pasteIcon, scopeIcon;
+
+    private boolean darkMode;
+
     public Entry(UIListener listener) {
 
         GridBagLayout layout = new GridBagLayout();
@@ -71,6 +85,8 @@ public class Entry extends JPanel {
         Font font = api.userInterface().currentDisplayFont();
 
         Insets insets = new Insets(5, 5, 5, 5);
+
+        this.darkMode = api.userInterface().currentTheme() == Theme.DARK;
 
         // Name Label
         this.nameLbl = new JLabel("Name:");
@@ -277,6 +293,15 @@ public class Entry extends JPanel {
         this.scanBtn = new JButton("Scan QR");
         scanBtn.setFont(btnFont);
 
+        this.scanIcon = FontIcon.of(MaterialDesignQ.QRCODE_SCAN);
+        scanIcon.setIconSize(btnFont.getSize());
+        scanIcon.setIconColor(darkMode ? Color.WHITE : Color.BLACK);
+
+        scanBtn.setIcon(scanIcon);
+        scanBtn.setIconTextGap(10);
+        scanBtn.setHorizontalTextPosition(JButton.RIGHT);
+        scanBtn.setHorizontalAlignment(JButton.LEFT);
+
         scanBtn.addActionListener(l -> {
 
             try {
@@ -309,7 +334,7 @@ public class Entry extends JPanel {
         GridBagConstraints scanBtnCons = new GridBagConstraints();
         scanBtnCons.gridx = 8;
         scanBtnCons.gridy = 0;
-        scanBtnCons.weightx = .5;
+        scanBtnCons.weightx = 0;
         scanBtnCons.weighty = .5;
         scanBtnCons.gridheight = 1;
         scanBtnCons.gridwidth = 1;
@@ -321,6 +346,15 @@ public class Entry extends JPanel {
 
         this.pasteBtn = new JButton("Paste QR");
         pasteBtn.setFont(btnFont);
+
+        this.pasteIcon = FontIcon.of(MaterialDesignC.CLIPBOARD_PLUS_OUTLINE);
+        pasteIcon.setIconSize(btnFont.getSize());
+        pasteIcon.setIconColor(darkMode ? Color.WHITE : Color.BLACK);
+
+        pasteBtn.setIcon(pasteIcon);
+        pasteBtn.setIconTextGap(10);
+        pasteBtn.setHorizontalTextPosition(JButton.RIGHT);
+        pasteBtn.setHorizontalAlignment(JButton.LEFT);
 
         pasteBtn.addActionListener(l -> {
 
@@ -354,7 +388,7 @@ public class Entry extends JPanel {
         GridBagConstraints pasteBtnCons = new GridBagConstraints();
         pasteBtnCons.gridx = 8;
         pasteBtnCons.gridy = 1;
-        pasteBtnCons.weightx = .5;
+        pasteBtnCons.weightx = 0;
         pasteBtnCons.weighty = .5;
         pasteBtnCons.gridheight = 1;
         pasteBtnCons.gridwidth = 1;
@@ -366,6 +400,15 @@ public class Entry extends JPanel {
 
         this.scopeBtn = new JButton("Scope");
         scopeBtn.setFont(btnFont);
+
+        this.scopeIcon = FontIcon.of(MaterialDesignT.TELESCOPE);
+        scopeIcon.setIconSize(btnFont.getSize());
+        scopeIcon.setIconColor(darkMode ? Color.WHITE : Color.BLACK);
+
+        scopeBtn.setIcon(scopeIcon);
+        scopeBtn.setIconTextGap(10);
+        scopeBtn.setHorizontalTextPosition(JButton.RIGHT);
+        scopeBtn.setHorizontalAlignment(JButton.LEFT);
 
         scopeBtn.addActionListener(l -> {
 
@@ -388,7 +431,7 @@ public class Entry extends JPanel {
         GridBagConstraints scopeBtnCons = new GridBagConstraints();
         scopeBtnCons.gridx = 9;
         scopeBtnCons.gridy = 0;
-        scopeBtnCons.weightx = .5;
+        scopeBtnCons.weightx = 0;
         scopeBtnCons.weighty = .5;
         scopeBtnCons.gridheight = 1;
         scopeBtnCons.gridwidth = 1;
@@ -402,6 +445,15 @@ public class Entry extends JPanel {
         addBtn.setFont(btnFont);
         addBtn.setBackground(new Color(255, 102, 51));
         addBtn.setForeground(Color.WHITE);
+
+        this.addIcon = FontIcon.of(MaterialDesignP.PLUS_CIRCLE_OUTLINE);
+        addIcon.setIconSize(btnFont.getSize());
+        addIcon.setIconColor(Color.WHITE);
+
+        addBtn.setIcon(addIcon);
+        addBtn.setIconTextGap(10);
+        addBtn.setHorizontalTextPosition(JButton.RIGHT);
+        addBtn.setHorizontalAlignment(JButton.LEFT);
 
         addBtn.addActionListener(l -> {
 
@@ -426,7 +478,7 @@ public class Entry extends JPanel {
         GridBagConstraints addBtnCons = new GridBagConstraints();
         addBtnCons.gridx = 9;
         addBtnCons.gridy = 1;
-        addBtnCons.weightx = .5;
+        addBtnCons.weightx = 0;
         addBtnCons.weighty = .5;
         addBtnCons.gridheight = 1;
         addBtnCons.gridwidth = 1;
@@ -476,6 +528,21 @@ public class Entry extends JPanel {
         this.durationField.setText(DEFAULT_DURATION + "");
 
         algoBtns.setSelected(sha1Rad.getModel(), true);
+
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+
+        super.paintComponent(g);
+
+        darkMode = api.userInterface().currentTheme() == Theme.DARK;
+
+        Color color = darkMode ? Color.WHITE : Color.BLACK;
+
+        scanIcon.setIconColor(color);
+        pasteIcon.setIconColor(color);
+        scopeIcon.setIconColor(color);
 
     }
 
