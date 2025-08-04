@@ -1,7 +1,6 @@
 package com.stephensantilli.totp.ui;
 
 import static com.stephensantilli.totp.TOTP.api;
-import static com.stephensantilli.totp.TOTP.logOutput;
 
 import java.awt.Color;
 import java.awt.Dimension;
@@ -458,7 +457,7 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         copyCodeBtnCons.fill = GridBagConstraints.BOTH;
         copyCodeBtnCons.anchor = GridBagConstraints.CENTER;
 
-        Timer copyCodeDelay = new Timer(200, m -> {
+        Timer copyCodeDelay = new Timer(250, m -> {
 
             copyCodeBtn.setIcon(copyCodeIcon);
 
@@ -472,8 +471,6 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
             clipboard.setContents(new StringSelection(code.generateCode()), null);
 
             copyCodeBtn.setIcon(copySuccessIcon);
-
-            logOutput(matchField.getLocationOnScreen() + "", true);
 
             copyCodeDelay.restart();
 
@@ -504,7 +501,7 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         copySecretBtnCons.fill = GridBagConstraints.BOTH;
         copySecretBtnCons.anchor = GridBagConstraints.CENTER;
 
-        Timer copySecretDelay = new Timer(200, m -> {
+        Timer copySecretDelay = new Timer(250, m -> {
 
             copySecretBtn.setIcon(copySecretIcon);
 

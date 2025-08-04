@@ -21,6 +21,13 @@ public class ScopeItem {
 
     }
 
+    @Override
+    public boolean equals(Object o) {
+
+        return o instanceof ScopeItem && ((ScopeItem) o).getPrefix().equals(prefix);
+
+    }
+
     /**
      * Returns whether or not the supplied URL is within this item's scope. If this
      * item's prefix starts with {@code https://}, {@code url} must use HTTPS too.

@@ -105,12 +105,14 @@ public interface UIListener {
      * @param prefix The new prefix
      * @param index  The index of the {@link ScopeItem} to be updated in the
      *               {@link UIListener}'s list of scope items.
+     * @throws Exception                 If there is already an item with that
+     *                                   prefix.
      * @throws IndexOutOfBoundsException If the index of the item is out of bounds
      *                                   in the {@link UIListener}'s list of scope
      *                                   items.
      * @see ScopeItem#getPrefix()
      */
-    public void setItemPrefix(String prefix, int index) throws IndexOutOfBoundsException;
+    public void setItemPrefix(String prefix, int index) throws Exception, IndexOutOfBoundsException;
 
     /**
      * Sets whether a {@link ScopeItem} is enabled. If persistence is

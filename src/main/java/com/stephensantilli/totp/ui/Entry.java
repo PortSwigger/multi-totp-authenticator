@@ -104,6 +104,62 @@ public class Entry extends JPanel {
 
     }
 
+    /**
+     * Creates a TOTP code from the user-supplied data in the fields of this form.
+     * 
+     * @return A {@link Code} object
+     * @throws Exception If the user-entered data is invalid.
+     */
+    public Code getCodeFromEntry() throws Exception {
+
+        String name = nameField.getText();
+        String secret = secretField.getText();
+
+        int digits = DEFAULT_DIGITS;
+        try {
+            digits = Integer.parseInt(this.digitsField.getText());
+        } catch (Exception e) {
+            throw new Exception("Unable to parse length of code entered!");
+        }
+
+        int duration = DEFAULT_DURATION;
+        try {
+            duration = Integer.parseInt(this.durationField.getText());
+        } catch (Exception e) {
+            throw new Exception("Unable to parse the duration!");
+        }
+
+        return new Code(name, secret, "_" + name + "_", digits, duration, getCrypto(), true);
+
+    }
+
+    public void resetEntry() {
+
+        this.secretField.setText("");
+        this.nameField.setText("Name");
+
+        this.digitsField.setText(DEFAULT_DIGITS + "");
+        this.durationField.setText(DEFAULT_DURATION + "");
+
+        algoBtns.setSelected(sha1Rad.getModel(), true);
+
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+
+        super.paintComponent(g);
+
+        darkMode = api.userInterface().currentTheme() == Theme.DARK;
+
+        Color color = darkMode ? Color.WHITE : Color.BLACK;
+
+        scanIcon.setIconColor(color);
+        pasteIcon.setIconColor(color);
+        scopeIcon.setIconColor(color);
+
+    }
+
     private void createAlgoSelection() {
 
         this.algoLbl = new JLabel("Algorithm:");
@@ -514,62 +570,6 @@ public class Entry extends JPanel {
         addBtnCons.anchor = GridBagConstraints.EAST;
 
         this.add(addBtn, addBtnCons);
-
-    }
-
-    /**
-     * Creates a TOTP code from the user-supplied data in the fields of this form.
-     * 
-     * @return A {@link Code} object
-     * @throws Exception If the user-entered data is invalid.
-     */
-    public Code getCodeFromEntry() throws Exception {
-
-        String name = nameField.getText();
-        String secret = secretField.getText();
-
-        int digits = DEFAULT_DIGITS;
-        try {
-            digits = Integer.parseInt(this.digitsField.getText());
-        } catch (Exception e) {
-            throw new Exception("Unable to parse length of code entered!");
-        }
-
-        int duration = DEFAULT_DURATION;
-        try {
-            duration = Integer.parseInt(this.durationField.getText());
-        } catch (Exception e) {
-            throw new Exception("Unable to parse the duration!");
-        }
-
-        return new Code(name, secret, "_" + name + "_", digits, duration, getCrypto(), true);
-
-    }
-
-    public void resetEntry() {
-
-        this.secretField.setText("");
-        this.nameField.setText("Name");
-
-        this.digitsField.setText(DEFAULT_DIGITS + "");
-        this.durationField.setText(DEFAULT_DURATION + "");
-
-        algoBtns.setSelected(sha1Rad.getModel(), true);
-
-    }
-
-    @Override
-    protected void paintComponent(Graphics g) {
-
-        super.paintComponent(g);
-
-        darkMode = api.userInterface().currentTheme() == Theme.DARK;
-
-        Color color = darkMode ? Color.WHITE : Color.BLACK;
-
-        scanIcon.setIconColor(color);
-        pasteIcon.setIconColor(color);
-        scopeIcon.setIconColor(color);
 
     }
 

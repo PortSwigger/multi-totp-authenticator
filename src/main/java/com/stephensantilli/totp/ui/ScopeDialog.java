@@ -89,6 +89,215 @@ public class ScopeDialog extends JPanel implements TableModelListener, ItemListe
 
     }
 
+    public void addScope(ScopeItem item) {
+
+        Object[] o = { item.isEnabled(), item.getPrefix(), item.getIncludeSubdomains() };
+
+        model.addRow(o);
+
+    }
+
+    public void removeScope(int index) {
+
+        model.removeRow(index);
+
+    }
+
+    public void clearInput() {
+
+        prefixField.setText("");
+        includeSubdomainsBox.setSelected(false);
+        prefixField.grabFocus();
+
+    }
+
+    public void setTools(ArrayList<ToolType> tools) throws Exception {
+
+        for (ToolType tool : tools) {
+
+            switch (tool) {
+                case TARGET:
+                    targetBox.setSelected(true);
+                    break;
+                case SCANNER:
+                    scannerBox.setSelected(true);
+                    break;
+                case REPEATER:
+                    repeaterBox.setSelected(true);
+                    break;
+                case INTRUDER:
+                    intruderBox.setSelected(true);
+                    break;
+                case SEQUENCER:
+                    sequencerBox.setSelected(true);
+                    break;
+                case BURP_AI:
+                    aiBox.setSelected(true);
+                    break;
+                case EXTENSIONS:
+                    extensionBox.setSelected(true);
+                    break;
+                case PROXY:
+                    proxyBox.setSelected(true);
+                    break;
+                default:
+                    throw new Exception("Invalid tool in scope.");
+            }
+
+        }
+
+    }
+
+    public void setPrefixes(ArrayList<ScopeItem> scope, ScopeOption scopeOption) {
+
+        setScopeOption(scopeOption);
+        setEntryEnabled(scopeOption);
+
+        model.setRowCount(0);
+
+        if (scope == null)
+            return;
+
+        for (ScopeItem s : scope) {
+
+            addScope(s);
+
+        }
+
+    }
+
+    public void setEntryEnabled(ScopeOption scopeOption) {
+
+        switch (scopeOption) {
+            case ALL_URLS:
+                setEntryEnabled(false);
+                break;
+            case CUSTOM_SCOPE:
+                setEntryEnabled(true);
+                break;
+            case SUITE_SCOPE:
+                setEntryEnabled(false);
+                break;
+            default:
+                logError("Can't set entry enabled for invalid tool type...", false);
+                break;
+        }
+
+    }
+
+    public void setEntryEnabled(boolean enabled) {
+
+        prefixLbl.setEnabled(enabled);
+        prefixField.setEnabled(enabled);
+        includeSubdomainsBox.setEnabled(enabled);
+        addBtn.setEnabled(enabled);
+        table.setEnabled(enabled);
+        tableScrollPane.setEnabled(enabled);
+
+    }
+
+    @Override
+    public void tableChanged(TableModelEvent e) {
+
+        int column = e.getColumn(), row = e.getFirstRow();
+
+        if (e.getType() == TableModelEvent.UPDATE && row == e.getLastRow()) {
+
+            try {
+
+                Object value = model.getValueAt(row, column);
+
+                switch (e.getColumn()) {
+
+                    case 0:
+                        listener.setItemEnabled((boolean) value, row);
+                        break;
+                    case 1:
+                        listener.setItemPrefix((String) value, row);
+                        break;
+                    case 2:
+                        listener.setItemIncludeSubdomains((boolean) value, row);
+
+                }
+
+            } catch (Exception ex) {
+
+                // TODO when a user sets a duplicate prefix, error message is shown but value
+                // isn't reset
+
+                JOptionPane.showMessageDialog(
+                        SwingUtilities.getWindowAncestor(this),
+                        ex.getMessage(),
+                        "Error",
+                        JOptionPane.WARNING_MESSAGE);
+
+            }
+
+        }
+
+    }
+
+    @Override
+    public void itemStateChanged(ItemEvent e) {
+
+        boolean selected = e.getStateChange() == 1;
+
+        Object item = e.getItem();
+
+        if (item instanceof JCheckBox) {
+
+            switch (((JCheckBox) e.getItem()).getText()) {
+                case "Target":
+                    listener.setTool(ToolType.TARGET, selected);
+                    break;
+                case "Scanner":
+                    listener.setTool(ToolType.SCANNER, selected);
+                    break;
+                case "Repeater":
+                    listener.setTool(ToolType.REPEATER, selected);
+                    break;
+                case "Intruder":
+                    listener.setTool(ToolType.INTRUDER, selected);
+                    break;
+                case "Sequencer":
+                    listener.setTool(ToolType.SEQUENCER, selected);
+                    break;
+                case "AI":
+                    listener.setTool(ToolType.BURP_AI, selected);
+                    break;
+                case "Extensions":
+                    listener.setTool(ToolType.EXTENSIONS, selected);
+                    break;
+                case "Proxy (use with caution)":
+                    listener.setTool(ToolType.PROXY, selected);
+                    break;
+            }
+
+        } else if (item instanceof JRadioButton && selected) {
+
+            ScopeOption sel = null;
+
+            switch (((JRadioButton) item).getText()) {
+
+                case "Include all URLs":
+                    sel = ScopeOption.ALL_URLS;
+                    break;
+                case "Use suite scope [defined in Target tab]":
+                    sel = ScopeOption.SUITE_SCOPE;
+                    break;
+                case "Custom scope":
+                    sel = ScopeOption.CUSTOM_SCOPE;
+                    break;
+
+            }
+
+            setEntryEnabled(sel);
+            listener.setScopeOption(sel);
+
+        }
+
+    }
+
     private void createToolsSection() {
 
         this.toolsScopeLbl = new JLabel("Tools scope");
@@ -544,212 +753,6 @@ public class ScopeDialog extends JPanel implements TableModelListener, ItemListe
         okBtnCons.anchor = GridBagConstraints.CENTER;
 
         this.add(okBtn, okBtnCons);
-
-    }
-
-    public void addScope(ScopeItem item) {
-
-        Object[] o = { item.isEnabled(), item.getPrefix(), item.getIncludeSubdomains() };
-
-        model.addRow(o);
-
-    }
-
-    public void removeScope(int index) {
-
-        model.removeRow(index);
-
-    }
-
-    public void clearInput() {
-
-        prefixField.setText("");
-        includeSubdomainsBox.setSelected(false);
-        prefixField.grabFocus();
-
-    }
-
-    public void setTools(ArrayList<ToolType> tools) throws Exception {
-
-        for (ToolType tool : tools) {
-
-            switch (tool) {
-                case TARGET:
-                    targetBox.setSelected(true);
-                    break;
-                case SCANNER:
-                    scannerBox.setSelected(true);
-                    break;
-                case REPEATER:
-                    repeaterBox.setSelected(true);
-                    break;
-                case INTRUDER:
-                    intruderBox.setSelected(true);
-                    break;
-                case SEQUENCER:
-                    sequencerBox.setSelected(true);
-                    break;
-                case BURP_AI:
-                    aiBox.setSelected(true);
-                    break;
-                case EXTENSIONS:
-                    extensionBox.setSelected(true);
-                    break;
-                case PROXY:
-                    proxyBox.setSelected(true);
-                    break;
-                default:
-                    throw new Exception("Invalid tool in scope.");
-            }
-
-        }
-
-    }
-
-    public void setPrefixes(ArrayList<ScopeItem> scope, ScopeOption scopeOption) {
-
-        setScopeOption(scopeOption);
-        setEntryEnabled(scopeOption);
-
-        model.setRowCount(0);
-
-        if (scope == null)
-            return;
-
-        for (ScopeItem s : scope) {
-
-            addScope(s);
-
-        }
-
-    }
-
-    public void setEntryEnabled(ScopeOption scopeOption) {
-
-        switch (scopeOption) {
-            case ALL_URLS:
-                setEntryEnabled(false);
-                break;
-            case CUSTOM_SCOPE:
-                setEntryEnabled(true);
-                break;
-            case SUITE_SCOPE:
-                setEntryEnabled(false);
-                break;
-            default:
-                logError("Can't set entry enabled for invalid tool type...", false);
-                break;
-        }
-
-    }
-
-    public void setEntryEnabled(boolean enabled) {
-
-        prefixLbl.setEnabled(enabled);
-        prefixField.setEnabled(enabled);
-        includeSubdomainsBox.setEnabled(enabled);
-        addBtn.setEnabled(enabled);
-        table.setEnabled(enabled);
-        tableScrollPane.setEnabled(enabled);
-
-    }
-
-    @Override
-    public void tableChanged(TableModelEvent e) {
-
-        int column = e.getColumn(), row = e.getFirstRow();
-
-        if (e.getType() == TableModelEvent.UPDATE && row == e.getLastRow()) {
-
-            try {
-
-                Object value = model.getValueAt(row, column);
-
-                switch (e.getColumn()) {
-
-                    case 0:
-                        listener.setItemEnabled((boolean) value, row);
-                        break;
-                    case 1:
-                        listener.setItemPrefix((String) value, row);
-                        break;
-                    case 2:
-                        listener.setItemIncludeSubdomains((boolean) value, row);
-
-                }
-
-            } catch (Exception ex) {
-
-                JOptionPane.showMessageDialog(
-                        SwingUtilities.getWindowAncestor(this),
-                        ex.getMessage(),
-                        "Error",
-                        JOptionPane.WARNING_MESSAGE);
-
-            }
-
-        }
-
-    }
-
-    @Override
-    public void itemStateChanged(ItemEvent e) {
-
-        boolean selected = e.getStateChange() == 1;
-
-        Object item = e.getItem();
-
-        if (item instanceof JCheckBox) {
-
-            switch (((JCheckBox) e.getItem()).getText()) {
-                case "Target":
-                    listener.setTool(ToolType.TARGET, selected);
-                    break;
-                case "Scanner":
-                    listener.setTool(ToolType.SCANNER, selected);
-                    break;
-                case "Repeater":
-                    listener.setTool(ToolType.REPEATER, selected);
-                    break;
-                case "Intruder":
-                    listener.setTool(ToolType.INTRUDER, selected);
-                    break;
-                case "Sequencer":
-                    listener.setTool(ToolType.SEQUENCER, selected);
-                    break;
-                case "AI":
-                    listener.setTool(ToolType.BURP_AI, selected);
-                    break;
-                case "Extensions":
-                    listener.setTool(ToolType.EXTENSIONS, selected);
-                    break;
-                case "Proxy (use with caution)":
-                    listener.setTool(ToolType.PROXY, selected);
-                    break;
-            }
-
-        } else if (item instanceof JRadioButton && selected) {
-
-            ScopeOption sel = null;
-
-            switch (((JRadioButton) item).getText()) {
-
-                case "Include all URLs":
-                    sel = ScopeOption.ALL_URLS;
-                    break;
-                case "Use suite scope [defined in Target tab]":
-                    sel = ScopeOption.SUITE_SCOPE;
-                    break;
-                case "Custom scope":
-                    sel = ScopeOption.CUSTOM_SCOPE;
-                    break;
-
-            }
-
-            setEntryEnabled(sel);
-            listener.setScopeOption(sel);
-
-        }
 
     }
 

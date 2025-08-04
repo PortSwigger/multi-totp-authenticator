@@ -500,9 +500,12 @@ public class TOTP
     }
 
     @Override
-    public void setItemPrefix(String prefix, int index) throws IndexOutOfBoundsException {
+    public void setItemPrefix(String prefix, int index) throws Exception, IndexOutOfBoundsException {
 
         ScopeItem item = scope.getPrefixes().get(index);
+
+        if (scope.getPrefixes().contains(new ScopeItem(prefix, false, false)))
+            throw new Exception("There is already a scope item with that prefix!");
 
         PersistedObject data = api.persistence().extensionData();
         PersistedList<String> prefixes = data.getStringList(PREFIXES_KEY);
@@ -510,7 +513,14 @@ public class TOTP
         prefixes.set(index, prefix);
         data.setStringList(PREFIXES_KEY, prefixes);
 
+        String oldPrefix = item.getPrefix();
+        data.deleteBoolean(oldPrefix + PREFIX_ENABLED_SUFFIX);
+        data.deleteBoolean(oldPrefix + PREFIX_INCLUDE_SUBDOMAINS_SUFFIX);
+
         item.setPrefix(prefix);
+
+        data.setBoolean(prefix + PREFIX_ENABLED_SUFFIX, item.isEnabled());
+        data.setBoolean(prefix + PREFIX_INCLUDE_SUBDOMAINS_SUFFIX, item.getIncludeSubdomains());
 
         logOutput("Prefix set to \"" + item.getPrefix() + "\"!", true);
 
