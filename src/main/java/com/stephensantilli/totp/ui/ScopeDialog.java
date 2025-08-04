@@ -55,6 +55,8 @@ public class ScopeDialog extends JPanel implements TableModelListener, ItemListe
 
     private DefaultTableModel model;
 
+    private Insets insets;
+
     public ScopeDialog(UIListener listener) {
 
         this.listener = listener;
@@ -62,7 +64,7 @@ public class ScopeDialog extends JPanel implements TableModelListener, ItemListe
         setLayout(new GridBagLayout());
 
         int inset = 10;
-        Insets insets = new Insets(inset, inset, inset, inset);
+        this.insets = new Insets(inset, inset, inset, inset);
 
         this.noteLbl = new JLabel("Note: The scope you apply here does not impact session handling rules.");
         noteLbl.setFont(noteLbl.getFont().deriveFont(Font.ITALIC));
@@ -81,6 +83,13 @@ public class ScopeDialog extends JPanel implements TableModelListener, ItemListe
         noteLblCons.anchor = GridBagConstraints.CENTER;
 
         this.add(noteLbl, noteLblCons);
+
+        createToolsSection();
+        createURLSection();
+
+    }
+
+    private void createToolsSection() {
 
         this.toolsScopeLbl = new JLabel("Tools scope");
         toolsScopeLbl.setFont(toolsScopeLbl.getFont().deriveFont(Font.BOLD));
@@ -251,6 +260,10 @@ public class ScopeDialog extends JPanel implements TableModelListener, ItemListe
         proxyBoxCons.anchor = GridBagConstraints.CENTER;
 
         this.add(proxyBox, proxyBoxCons);
+
+    }
+
+    private void createURLSection() {
 
         this.urlScopeLbl = new JLabel("URL Scope");
         urlScopeLbl.setFont(urlScopeLbl.getFont().deriveFont(Font.BOLD));

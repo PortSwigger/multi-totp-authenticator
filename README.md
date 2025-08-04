@@ -113,8 +113,11 @@ Here, you can enter the string that you want the extension to search for in requ
 #### Replace in requests?
 This checkbox allows you to quickly enable or disable replacing for that specific TOTP. When disabled, the match string cannot be edited and the extension will not replace occurrences of the match in requests. If you have a lot of TOTPs saved, you may find better performance by disabling matching of TOTPs that you are not using.
 
-#### Copy
-This button will copy the TOTP code (without spacing) to your clipboard. 
+#### Copy code (Shield with lock)
+This button will copy the TOTP code (without spacing) to your clipboard.
+
+#### Copy secret (Key)
+This button will copy the TOTP's `otpauth://` URI to your clipboard. This can then be pasted using the [Paste QR](#paste-qr) button.
 
 #### Remove (X)
 This button will remove the TOTP from the UI. It will also remove it from the project storage if the [Save TOTPs to project file](#save-totps-to-project-file) option is enabled.  

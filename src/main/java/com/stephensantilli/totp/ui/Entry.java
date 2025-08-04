@@ -53,6 +53,7 @@ import com.stephensantilli.totp.Code;
 import com.stephensantilli.totp.UIListener;
 
 import burp.api.montoya.ui.Theme;
+import burp.api.montoya.ui.UserInterface;
 
 import com.stephensantilli.totp.TOTP;
 
@@ -76,17 +77,102 @@ public class Entry extends JPanel {
 
     private boolean darkMode;
 
+    private Font font;
+
+    private Insets insets;
+
+    private UIListener listener;
+
     public Entry(UIListener listener) {
 
         GridBagLayout layout = new GridBagLayout();
 
         setLayout(layout);
 
-        Font font = api.userInterface().currentDisplayFont();
+        this.listener = listener;
 
-        Insets insets = new Insets(5, 5, 5, 5);
+        UserInterface ui = api.userInterface();
 
-        this.darkMode = api.userInterface().currentTheme() == Theme.DARK;
+        this.font = ui.currentDisplayFont();
+        this.darkMode = ui.currentTheme() == Theme.DARK;
+
+        this.insets = new Insets(5, 5, 5, 5);
+
+        createFields();
+        createAlgoSelection();
+        createButtons();
+
+    }
+
+    private void createAlgoSelection() {
+
+        this.algoLbl = new JLabel("Algorithm:");
+        algoLbl.setFont(font);
+
+        GridBagConstraints algoLblCons = new GridBagConstraints();
+        algoLblCons.gridx = 4;
+        algoLblCons.gridy = 1;
+        algoLblCons.weightx = 0;
+        algoLblCons.weighty = .5;
+        algoLblCons.gridheight = 1;
+        algoLblCons.gridwidth = 1;
+        algoLblCons.insets = insets;
+        algoLblCons.anchor = GridBagConstraints.EAST;
+
+        this.add(algoLbl, algoLblCons);
+
+        this.sha1Rad = new JRadioButton("SHA-1");
+        sha1Rad.setSelected(true);
+        sha1Rad.setFont(font);
+
+        GridBagConstraints sha1RadCons = new GridBagConstraints();
+        sha1RadCons.gridx = 5;
+        sha1RadCons.gridy = 1;
+        sha1RadCons.weightx = .5;
+        sha1RadCons.weighty = .5;
+        sha1RadCons.gridheight = 1;
+        sha1RadCons.gridwidth = 1;
+        sha1RadCons.insets = insets;
+        sha1RadCons.fill = GridBagConstraints.BOTH;
+        sha1RadCons.anchor = GridBagConstraints.CENTER;
+
+        this.add(sha1Rad, sha1RadCons);
+
+        this.sha256Rad = new JRadioButton("SHA-256");
+        sha256Rad.setFont(font);
+
+        GridBagConstraints sha256RadCons = new GridBagConstraints();
+        sha256RadCons.gridx = 6;
+        sha256RadCons.gridy = 1;
+        sha256RadCons.weightx = .5;
+        sha256RadCons.weighty = .5;
+        sha256RadCons.gridheight = 1;
+        sha256RadCons.gridwidth = 1;
+        sha256RadCons.insets = insets;
+        sha256RadCons.fill = GridBagConstraints.BOTH;
+        sha256RadCons.anchor = GridBagConstraints.CENTER;
+
+        this.add(sha256Rad, sha256RadCons);
+
+        this.sha512Rad = new JRadioButton("SHA-512");
+        sha512Rad.setFont(font);
+
+        GridBagConstraints sha512RadCons = new GridBagConstraints();
+        sha512RadCons.gridx = 7;
+        sha512RadCons.gridy = 1;
+        sha512RadCons.weightx = .5;
+        sha512RadCons.weighty = .5;
+        sha512RadCons.gridheight = 1;
+        sha512RadCons.gridwidth = 1;
+        sha512RadCons.insets = insets;
+        sha512RadCons.fill = GridBagConstraints.BOTH;
+        sha512RadCons.anchor = GridBagConstraints.CENTER;
+
+        this.add(sha512Rad, sha512RadCons);
+
+    }
+
+    private void createFields() {
 
         // Name Label
         this.nameLbl = new JLabel("Name:");
@@ -121,6 +207,7 @@ public class Entry extends JPanel {
 
         this.add(nameField, nameFieldCons);
 
+        // Secret label
         this.secretLbl = new JLabel("Secret:");
         secretLbl.setFont(font);
 
@@ -219,69 +306,9 @@ public class Entry extends JPanel {
 
         this.add(digitsField, digitsFieldCons);
 
-        this.algoLbl = new JLabel("Algorithm:");
-        algoLbl.setFont(font);
+    }
 
-        GridBagConstraints algoLblCons = new GridBagConstraints();
-        algoLblCons.gridx = 4;
-        algoLblCons.gridy = 1;
-        algoLblCons.weightx = 0;
-        algoLblCons.weighty = .5;
-        algoLblCons.gridheight = 1;
-        algoLblCons.gridwidth = 1;
-        algoLblCons.insets = insets;
-        algoLblCons.anchor = GridBagConstraints.EAST;
-
-        this.add(algoLbl, algoLblCons);
-
-        this.sha1Rad = new JRadioButton("SHA-1");
-        sha1Rad.setSelected(true);
-        sha1Rad.setFont(font);
-
-        GridBagConstraints sha1RadCons = new GridBagConstraints();
-        sha1RadCons.gridx = 5;
-        sha1RadCons.gridy = 1;
-        sha1RadCons.weightx = .5;
-        sha1RadCons.weighty = .5;
-        sha1RadCons.gridheight = 1;
-        sha1RadCons.gridwidth = 1;
-        sha1RadCons.insets = insets;
-        sha1RadCons.fill = GridBagConstraints.BOTH;
-        sha1RadCons.anchor = GridBagConstraints.CENTER;
-
-        this.add(sha1Rad, sha1RadCons);
-
-        this.sha256Rad = new JRadioButton("SHA-256");
-        sha256Rad.setFont(font);
-
-        GridBagConstraints sha256RadCons = new GridBagConstraints();
-        sha256RadCons.gridx = 6;
-        sha256RadCons.gridy = 1;
-        sha256RadCons.weightx = .5;
-        sha256RadCons.weighty = .5;
-        sha256RadCons.gridheight = 1;
-        sha256RadCons.gridwidth = 1;
-        sha256RadCons.insets = insets;
-        sha256RadCons.fill = GridBagConstraints.BOTH;
-        sha256RadCons.anchor = GridBagConstraints.CENTER;
-
-        this.add(sha256Rad, sha256RadCons);
-
-        this.sha512Rad = new JRadioButton("SHA-512");
-        sha512Rad.setFont(font);
-
-        GridBagConstraints sha512RadCons = new GridBagConstraints();
-        sha512RadCons.gridx = 7;
-        sha512RadCons.gridy = 1;
-        sha512RadCons.weightx = .5;
-        sha512RadCons.weighty = .5;
-        sha512RadCons.gridheight = 1;
-        sha512RadCons.gridwidth = 1;
-        sha512RadCons.insets = insets;
-        sha512RadCons.fill = GridBagConstraints.BOTH;
-        sha512RadCons.anchor = GridBagConstraints.CENTER;
-
-        this.add(sha512Rad, sha512RadCons);
+    private void createButtons() {
 
         this.algoBtns = new ButtonGroup();
         algoBtns.add(sha1Rad);

@@ -82,11 +82,14 @@ public class CodeTable extends JPanel {
      */
     public void highlightMatches() {
 
+        if (codeItems.size() <= 0)
+            return;
+
         ArrayList<CodeItem> items = new ArrayList<>(codeItems);
+
         items.sort((a, b) -> a.getCode().getMatch().compareTo(b.getCode().getMatch()));
 
-        if (items.size() > 0)
-            items.get(0).setRegexValid(true);
+        items.get(0).setRegexValid(true);
 
         for (int i = 0; i < items.size() - 1; i++) {
 

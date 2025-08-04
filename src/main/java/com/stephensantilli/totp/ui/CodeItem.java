@@ -77,7 +77,7 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
         this.code = code;
         this.listener = listener;
-        this.regexValid = false;
+        this.regexValid = true;
 
         setLayout(new GridBagLayout());
 
@@ -99,7 +99,7 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
         // Things get weird if this panel isn't given enough height.
         // At a high enough font size even this isn't enough.
-        int maxHeight = metrics.getHeight() + 215;
+        int maxHeight = metrics.getHeight() + 200;
 
         setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
         setMaximumSize(new Dimension(Integer.MAX_VALUE, maxHeight));
@@ -261,9 +261,9 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
     private void createCodeDisplay() {
 
         this.nameLbl = new JLabel("XXXXXXXXXXXXXXXXXXXX");
+        nameLbl.setFont(font.deriveFont(Font.BOLD));
         nameLbl.setPreferredSize(nameLbl.getPreferredSize());
         nameLbl.setText(code.getName());
-        nameLbl.setFont(font.deriveFont(Font.BOLD));
         nameLbl.addMouseListener(this);
         nameLbl.setToolTipText("Name: " + code.getName());
 
@@ -282,8 +282,10 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
         Color algoColor = new Color(100, 100, 100);
 
-        this.algoLbl = new JLabel(formatCrypto(code.getCrypto()));
+        this.algoLbl = new JLabel("SHA-512");
         algoLbl.setFont(font.deriveFont(Font.BOLD));
+        algoLbl.setPreferredSize(algoLbl.getPreferredSize());
+        algoLbl.setText(formatCrypto(code.getCrypto()));
         algoLbl.setForeground(algoColor);
         algoLbl.addMouseListener(this);
         algoLbl.setToolTipText("Hashing algorithm");
@@ -366,9 +368,9 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         this.add(matchLbl, matchLblCons);
 
         this.matchField = new JTextField("XXXXXXXXXXXXXXXXXXXX");
+        matchField.setFont(font);
         matchField.setPreferredSize(matchField.getSize());
         matchField.setText(code.getMatch());
-        matchField.setFont(font);
         matchField.addMouseListener(this);
         matchField.addKeyListener(this);
         matchField.setEnabled(code.isEnabled());
@@ -471,7 +473,6 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
 
             copyCodeBtn.setIcon(copySuccessIcon);
 
-            // TODO: Remove
             logOutput(matchField.getLocationOnScreen() + "", true);
 
             copyCodeDelay.restart();
@@ -527,6 +528,7 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         this.removeBtn = new JButton();
         removeBtn.setFont(font);
         removeBtn.addMouseListener(this);
+        removeBtn.setToolTipText("Remove TOTP from project");
 
         this.removeIcon = FontIcon.of(MaterialDesignC.CLOSE);
         removeIcon.setIconColor(darkMode ? Color.WHITE : Color.BLACK);
@@ -568,6 +570,7 @@ public class CodeItem extends JPanel implements KeyListener, MouseListener {
         int progress = duration - (((int) (System.currentTimeMillis() / 1000)) % duration);
 
         progressBar.setValue(progress);
+        progressBar.setToolTipText(progress + "/" + duration + " seconds");
 
     }
 
