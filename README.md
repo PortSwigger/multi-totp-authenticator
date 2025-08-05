@@ -1,10 +1,11 @@
 # TOTP
-TOTP is an extension for Burp Suite that allows you to generate and use time-based one-time passwords. TOTP codes are generated according to the standard outlined in [RFC 6238](https://datatracker.ietf.org/doc/html/rfc6238). The extension supports both Burp Suite's Professional and Community editions.
+TOTP is an extension for Burp Suite that allows you to generate and use time-based one-time passwords, which are usually used for multi-factor authentication. TOTP codes are generated according to the standard outlined in [RFC 6238](https://datatracker.ietf.org/doc/html/rfc6238). The extension supports both Burp Suite's Professional and Community editions.
 
 ![Screenshot of the extension's tab in Burp Suite.](/images/TOTP%20Tab.png)
 
 ## Table of Contents
 - [Features](#features)
+- [Building](#building)
 - [Installation](#installation)
 - [Usage](#usage)
   - [Adding a code](#adding-a-code)
@@ -36,14 +37,17 @@ TOTP is an extension for Burp Suite that allows you to generate and use time-bas
 - Insert TOTP codes into message editors from the right-click (context) menu
 - Name each TOTP to distinguish them
 
-## Installation
+## Building
 1. Download the source code
 2. Build the extension using `./gradlew build` (Mac & Linux) or `.\gradlew.bat build` (Windows)
-3. Launch Burp Suite and navigate to the "Extensions" tab
-4. Click "Add"
-5. Set "Extension type" to `Java`
-6. Select the Jar file you built in Step 2 (It will be in `./build/libs/TOTP.jar`)
-7. Click "Next" to load the extension
+
+## Installation
+1. Download TOTP.jar from the [latest release](https://github.com/StephenSantilli/TOTP/releases/latest) or [build it yourself](#building)
+2. Launch Burp Suite and navigate to the "Extensions" tab
+3. Click "Add"
+4. Set "Extension type" to `Java`
+5. Select the Jar file you built in Step 2 (It will be in `./build/libs/TOTP.jar`)
+6. Click "Next" to load the extension
 
 For more information, see [Installing extensions manually](https://portswigger.net/burp/documentation/desktop/extend-burp/extensions/installing/manual-install) from PortSwigger.
 
