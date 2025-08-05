@@ -8,8 +8,9 @@ TOTP is an extension for Burp Suite that allows you to generate and use time-bas
 - [Installation](#installation)
 - [Usage](#usage)
   - [Adding a code](#adding-a-code)
-  - [Scanning QR codes](#scanning-qr-codes)
+  - [Scanning QR Codes](#scanning-qr-codes)
   - [Setting your Scope](#setting-your-scope)
+  - [Session handling rules](#session-handling-rules)
   - [Viewing your codes](#viewing-your-codes)
   - [Insert into message editors](#insert-into-message-editors)
   - [Use with Scanner](#use-with-scanner)
@@ -58,16 +59,16 @@ Give your TOTP a name! This will allow you to distinguish it from other TOTPs in
 This is where you will enter in the Base 32-encoded secret of your TOTP. Typically, the secret will be in the form `A2B3 C4D5 E6F7 GHIJ KLMN OPQR STUV WXYZ`. The extension uses the Base 32 encoding described in [Section 6 of RFC4648](https://datatracker.ietf.org/doc/html/rfc4648#section-6), which includes the uppercase letters A-Z and digits 2-7.
 
 #### Duration
-This is how long each TOTP lasts for, in seconds. This will almost always be 30, but some applications may use values such as `60`.
+This is how long each TOTP lasts for, in seconds. This will almost always be 30 seconds, but some applications may use values such as 60 seconds.
 
 #### Code Length
-This is the number of digits of the TOTP code to generate. This will almost always be 6, returning a code in the form of `123 456`. However, some applications may use values such as 8.
+The number of digits that generated codes should be. This will almost always be 6, returning a code in the form of `123 456`. However, some applications may use values such as 8.
 
 #### Algorithm
-This allows you to select the hashing algorithm that the application expects. This will almost always be SHA-1, which uses the HMAC-SHA-1 hash function. Some applications may use SHA-256 or SHA-512 hashing instead.
+This allows you to select the hashing algorithm that the application expects. If you are unsure, this will almost always be SHA-1, which uses the HMAC-SHA-1 hash function. Some applications may use SHA-256 or SHA-512 hashing instead.
 
 ### Scanning QR Codes
-QR codes can be used to automatically populate the values detailed in [Adding a code](#adding-a-code). There are two ways to use QR codes, detailed below. See [Acknowledgements](#acknowledgements) for details about the URI specification used.
+QR codes can be used to automatically populate the values detailed in [Adding a code](#adding-a-code). You may paste a QR from your clipboard or scan one that is on your screen. See below for details. See [Acknowledgements](#acknowledgements) for information about the URI specification used.
 
 #### Scan QR
 This will scan a QR code that is on your screen. In order for QR codes to be scanned, you must have the code and Burp visible on the same monitor. Depending on your operating system, you may also have to give Burp Suite access to take a screen capture. If a QR code is successfully scanned, the encoded values will be added to their respective fields. Adjust them or simply press "Add."
@@ -84,7 +85,7 @@ The extension allows you to define a scope that limits which requests it will re
 The extension will only monitor requests from the tools you enable here.
 
 #### URL scope
-You may either choose to include all URLs, use the suite scope, or define a custom scope. The custom scope is configured by defining prefixes, such that the extension will filter all requests with URLs that start with your prefix. Scopes that start with `https://` will only allow HTTPS requests to be in scope. However, scopes that start with `http://` work for any protocol at the given URL.
+You may either choose to include all URLs, use the suite scope, or define a custom scope. The custom scope is configured by defining prefixes, such that the extension will listen to all requests with URLs that start with your prefix. Scopes that start with `https://` will only allow HTTPS requests to be in scope. However, scopes that start with `http://` or that omit a protocol work for any protocol at the given URL.
 
 ##### Include subdomains?
 Enabling this will allow subdomains of that prefix to be included in the scope. For example, `github.com` with "Include subdomains?" enabled will also match `example.github.com`.
@@ -114,16 +115,16 @@ Here, you can enter the string that you want the extension to search for in requ
 This checkbox allows you to quickly enable or disable replacing for that specific TOTP. When disabled, the match string cannot be edited and the extension will not replace occurrences of the match in requests. If you have a lot of TOTPs saved, you may find better performance by disabling matching of TOTPs that you are not using.
 
 #### Copy code (Shield with lock)
-This button will copy the TOTP code (without spacing) to your clipboard.
+This button will copy the current TOTP code to your clipboard.
 
 #### Copy secret (Key)
-This button will copy the TOTP's `otpauth://` URI to your clipboard. This can then be pasted using the [Paste QR](#paste-qr) button.
+This button will copy the TOTP's `otpauth://` URI to your clipboard, containing all of the details of your TOTP. You may paste the URI right back into the extension using the [Paste QR](#paste-qr) button.
 
 #### Remove (X)
-This button will remove the TOTP from the UI. It will also remove it from the project storage if the [Save TOTPs to project file](#save-totps-to-project-file) option is enabled.  
+This button will remove the TOTP from the extension. It will also remove it from the project storage if the [Save TOTPs to project file](#save-totps-to-project-file) option is enabled.
 
 ### Insert into message editors
-Right click in any editable message editor in Burp. Under `Extensions > TOTP` you can either insert the current code for each TOTP you have saved or insert the match string placeholder you have configured.
+Right click in any editable message editor in Burp. Under `Extensions > TOTP` you can either insert the current code for each TOTP you have saved or insert the match string placeholder you have configured. This menu will not display if you have no codes saved in the extension.
 
 ### Use with Scanner
 The extension can be used with Burp's Scanner, which allows you to scan targets that use TOTPs for multi-factor authentication. 
@@ -138,7 +139,7 @@ The extension can be used with Burp's Scanner, which allows you to scan targets 
 ## Troubleshooting
 
 ### The placeholder wasn't replaced with a TOTP
-[Check your scope](#setting-your-scope)! Make sure the tool that you are using is selected. If you are using a session handling rule, try using the session handling tracer.
+[Check your scope](#setting-your-scope)! Make sure the tool that you are using is selected. If you are using a session handling rule, try using the [session handling tracer](https://portswigger.net/burp/documentation/desktop/settings/sessions#:~:text=rule%20editor%20documentation.-,Session%20handling%20tracer,-The%20session%20handling).
 
 ### My placeholder gets replaced with the TOTP code in Repeater
 This is how Burp handles session handling rules. If you don't want this to happen, consider not using a session rule and [configuring your scope through the extension](#setting-your-scope) instead.
@@ -149,7 +150,7 @@ You can find options for this extension in Burp's application settings under the
 ### Save TOTPs to project file
 Enabling this will store the settings for each TOTP you add in the storage of your project file. This means TOTPs persist, even when you restart Burp Suite. The [scope you define](#setting-your-scope) will always be saved to the project file regardless of this setting.
 
-**Security Note**:  This setting stores the secrets of your TOTPs in your `.burp` project file. If you are concerned about the security of this, consider disabling this option and use care when sharing your project file.
+**Security Note**:  This setting stores the secrets of your TOTPs in your `.burp` project file. If you are concerned about the security of this, consider disabling this option or use care when sharing your project file.
 
 ### Use regex when matching TOTPs
 Enabling this option will treat your match strings as regular expressions according to [Java Pattern syntax](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/regex/Pattern.html).

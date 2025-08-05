@@ -560,6 +560,9 @@ public class TOTP
 
         logOutput("Menu item provider called at event type: " + event.invocationType(), true);
 
+        if (codes.size() <= 0)
+            return null;
+
         switch (event.invocationType()) {
             case INTRUDER_ATTACK_RESULTS:
             case MESSAGE_VIEWER_RESPONSE:
