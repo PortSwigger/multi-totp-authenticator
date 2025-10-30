@@ -6,7 +6,7 @@ ScreenVersion: 1.0.0
 SerialVersion: 1
 MinPlatformVersion: 24
 ProOnly: False
-Author: StephenSantilli
+Author: Stephen Santilli
 ShortDescription: Manage multiple time-based one-time passwords (TOTPs) simultaneously.
 EntryPoint: TOTP.jar
 BuildCommand: ./gradlew build
