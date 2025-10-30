@@ -7,7 +7,7 @@ SerialVersion: 1
 MinPlatformVersion: 24
 ProOnly: False
 Author: StephenSantilli
-ShortDescription: Generates and uses time-based one-time passwords (TOTPs), enabling multi-factor authentication, with standards compliance (RFC 6238), QR code support, and integration with various Burp Suite's functionalities.
+ShortDescription: Manage multiple time-based one-time passwords (TOTPs) simultaneously.
 EntryPoint: TOTP.jar
 BuildCommand: ./gradlew build
 SupportedProducts: Pro, Community
