@@ -1,0 +1,13 @@
+Uuid: 8f6e0539e1284794b81afbf747d4bfb1
+ExtensionType: 1
+Name: Multi-TOTP Authenticator
+RepoName: multi-totp-authenticator
+ScreenVersion: 1.0.0
+SerialVersion: 1
+MinPlatformVersion: 24
+ProOnly: False
+Author: StephenSantilli
+ShortDescription: Generates and uses time-based one-time passwords (TOTPs), enabling multi-factor authentication, with standards compliance (RFC 6238), QR code support, and integration with various Burp Suite's functionalities.
+EntryPoint: TOTP.jar
+BuildCommand: ./gradlew build
+SupportedProducts: Pro, Community

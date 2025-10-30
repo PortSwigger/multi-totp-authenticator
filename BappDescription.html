@@ -1,0 +1,34 @@
+<p>This extension for Burp Suite aims to simplify the generation and usage of Time-Based One-Time Passwords, frequently used for two-factor authentication. It adheres to the standards outlined in RFC 6238 and is compatible with both Professional and Community versions of Burp Suite.</p>
+
+<h2>Features</h2>
+
+<ul>
+    <li>Displays automatically-refreshed TOTP codes directly in Burp Suite</li>
+    <li>Auto-inserts TOTPs into requests sent by any Burp tool with a simple or regex match string 
+        <ul>
+            <li>Use this feature with Burps Scanner to crawl websites requiring two-factor authentication</li>
+            <li>Utilize with Repeater to test authentication flows without the need for constant copy-pasting of TOTP codes</li>
+            <li>Includes option to enable or disable matching for individual TOTPs</li>
+        </ul>
+    </li>
+    <li>Able to add TOTPs from QR codes without requiring manual entry</li>
+    <li>Supports saving TOTPs directly to the project file</li>
+    <li>Allows for customization of TOTPs with user-specified durations, code lengths, and choice of hashing algorithm (SHA-1, SHA-256, or SHA-512)</li>
+    <li>Includes a feature to copy TOTPs to the clipboard with a single click</li>
+    <li>Offers the ability to insert TOTP codes into message editors from the right-click context menu</li>
+    <li>TOTPs can be given custom names for easy differentiation</li>
+</ul>
+
+<h2>Usage</h2>
+
+<p>The extension provides a TOTP tab in Burp Suite where you can set the details of a TOTP, including:</p>
+
+<ul>
+    <li><strong>Name:</strong> A custom name for each TOTP</li>
+    <li><strong>Secret:</strong> Input the Base 32-encoded secret of the TOTP here</li>
+    <li><strong>Duration:</strong> Duration of the TOTP in seconds. Usually set to 30 seconds, but can be adjusted to fit specific needs</li>
+    <li><strong>Code Length:</strong> The number of digits the generated code should have, typically 6</li>
+    <li><strong>Algorithm:</strong> Select the hashing algorithm, default is SHA-1 but SHA-256 or SHA-512 can also be chosen</li>
+</ul>
+
+<p>QR codes can be used to automatically fill the above values. There are options to either scan a QR code displayed on your screen or paste an image from the clipboard.</p>
